@@ -1,0 +1,1876 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vasarely Room 6 Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --bg:#eceef2; --panel:#ffffff; --panel-2:#f4f5f8; --ink:#171a22; --muted:#5b6172; --line:#d8dbe3;
+  --accent:#2447c8; --accent-soft:#e3e8fb; --accent-ink:#ffffff;
+  --ok:#1d7f48; --ok-soft:#e1f2e8; --warn:#9a6310; --warn-soft:#f8ecd6; --err:#c0332f; --err-soft:#f9e0df;
+  --scene:#e4e6eb; --shadow:0 6px 24px rgba(22,28,48,.12);
+  --sans:"Archivo",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#111318; --panel:#1a1d24; --panel-2:#21252e; --ink:#eceef3; --muted:#9aa1b1; --line:#2c313c;
+    --accent:#7390ff; --accent-soft:#232c4d; --accent-ink:#0d1020;
+    --ok:#5fcf8f; --ok-soft:#18301f; --warn:#e2ad55; --warn-soft:#352914; --err:#ff7b75; --err-soft:#3a1c1c;
+    --scene:#1a1d24; --shadow:0 6px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111318; --panel:#1a1d24; --panel-2:#21252e; --ink:#eceef3; --muted:#9aa1b1; --line:#2c313c;
+  --accent:#7390ff; --accent-soft:#232c4d; --accent-ink:#0d1020;
+  --ok:#5fcf8f; --ok-soft:#18301f; --warn:#e2ad55; --warn-soft:#352914; --err:#ff7b75; --err-soft:#3a1c1c;
+  --scene:#1a1d24; --shadow:0 6px 24px rgba(0,0,0,.4);
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;overflow:hidden}
+#app{position:relative;height:100%;overflow:hidden}
+#c{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;background:var(--scene)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.top{position:absolute;top:12px;left:16px;right:392px;display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;pointer-events:none}
+.top > *{pointer-events:auto}
+.brand{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;display:flex;gap:10px;align-items:center;box-shadow:var(--shadow)}
+.mark{width:26px;height:26px;display:grid;grid-template-columns:repeat(3,1fr);gap:2px;flex:none}
+.mark i{background:var(--accent);border-radius:50%}
+.mark i:nth-child(odd){border-radius:1px;transform:scale(.8)}
+.mark i:nth-child(5){background:#e6b9b3;border-radius:50%}
+.brand h1{font-size:15px;font-weight:700;margin:0;letter-spacing:-.01em;text-wrap:balance}
+.brand p{margin:1px 0 0;font:12px/1.3 var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.views{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;box-shadow:var(--shadow)}
+.views button{border:0;background:none;padding:7px 14px;border-radius:7px;font-weight:600;color:var(--muted)}
+.views button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.walkstart{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:5px 8px;box-shadow:var(--shadow);font-size:13px;color:var(--muted)}
+.walkstart select{border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:4px 6px;color:var(--ink)}
+
+.panel{position:absolute;top:12px;right:16px;bottom:16px;width:360px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.panel-head{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);gap:8px}
+.tabs{display:flex;gap:2px;background:var(--panel-2);border-radius:8px;padding:3px}
+.tabs button{border:0;background:none;padding:6px 12px;border-radius:6px;font-weight:600;font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tabs .count{font:11px var(--mono);color:var(--muted)}
+.sheet-toggle{display:none;border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:3px 10px;font-size:12px}
+.panel-body{overflow:auto;padding:12px 14px 16px;display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
+.tabpane{display:flex;flex-direction:column;gap:14px}
+.legend{font-size:12.5px;color:var(--muted);line-height:1.45;margin:0}
+.legend b{color:var(--ink);font-weight:600}
+
+/* walls */
+.walls{display:flex;flex-direction:column;gap:8px}
+.wall{border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;background:var(--panel)}
+.wall[data-selected="true"],.art[data-selected="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.wall-head{display:flex;align-items:center;gap:8px;cursor:pointer;background:none;border:0;padding:0;text-align:left;width:100%}
+.swatch{width:12px;height:12px;border-radius:3px;flex:none;border:1px solid rgba(0,0,0,.15)}
+.swatch.mob{background:#f2eee4}.swatch.dry{background:#e8bdb8}
+.wall-name{flex:1;min-width:0;font-weight:600;font-size:13.5px;line-height:1.25}
+.wall-name small,.art-meta{display:block;font:11.5px var(--mono);color:var(--muted);font-weight:400;font-variant-numeric:tabular-nums}
+.chip{font:11px var(--mono);padding:2px 7px;border-radius:99px;white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.err{background:var(--err-soft);color:var(--err)}
+.chip.fixed,.chip.idle{background:var(--panel-2);color:var(--muted)}
+.chip.hung{background:var(--accent-soft);color:var(--accent)}
+.issues{margin:0;padding:0;list-style:none;font-size:12px;display:flex;flex-direction:column;gap:2px}
+.issues li.err{color:var(--err)}.issues li.warn{color:var(--warn)}
+.fields{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.fields.two{grid-template-columns:repeat(2,1fr)}
+.fields label,.field{display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;min-width:0}
+.fields input,.fields select,.field input{width:100%;min-width:0;border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:5px 6px;font:13px var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);text-transform:none;letter-spacing:0}
+.field input[type="text"]{font-family:var(--sans)}
+.span2{grid-column:span 2}.span3{grid-column:1/-1}
+.rot{display:flex;gap:6px;flex-wrap:wrap}
+.rot button,.btn{border:1px solid var(--line);background:var(--panel-2);border-radius:7px;padding:5px 9px;font-size:12.5px;font-weight:500}
+.rot button{flex:1;font-family:var(--mono)}
+.rot button:hover,.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.danger{color:var(--err)}
+.btn.link{border:0;background:none;padding:0;color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.opts{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--line);padding-top:12px}
+.opts label{display:flex;gap:8px;align-items:center;font-size:13px}
+.opts input[type="checkbox"]{accent-color:var(--accent)}
+.opts input[type="number"]{width:64px;border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:3px 6px;font:13px var(--mono)}
+.actions{display:flex;flex-wrap:wrap;gap:6px}
+.copyOut{width:100%;min-height:120px;font:12px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--ink);padding:8px;resize:vertical}
+
+/* artworks */
+.dropzone{border:1.5px dashed var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--panel-2)}
+.dropzone p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.45}
+.dropzone b{color:var(--ink)}
+.filter{display:flex;gap:4px;flex-wrap:wrap}
+.filter button{border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:3px 10px;font-size:12px;color:var(--muted)}
+.filter button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+.artlist{display:flex;flex-direction:column;gap:6px}
+.art{border:1px solid var(--line);border-radius:10px;background:var(--panel);display:flex;flex-direction:column}
+.art-row{user-select:none;-webkit-user-select:none;display:flex;gap:10px;align-items:center;padding:6px;min-width:0}
+.grip{width:52px;height:52px;flex:none;border-radius:6px;background:var(--panel-2);display:grid;place-items:center;overflow:hidden;cursor:grab;touch-action:none;position:relative;border:1px solid var(--line)}
+.grip img{width:100%;height:100%;object-fit:contain;pointer-events:none;user-select:none;-webkit-user-drag:none}
+.grip .ph{font:10px var(--mono);color:var(--muted);text-align:center;line-height:1.2;padding:2px}
+.grip::after{content:"⠿";position:absolute;right:1px;bottom:-2px;font-size:12px;color:var(--muted);text-shadow:0 0 2px var(--panel)}
+.art-main{flex:1;min-width:0;border:0;background:none;text-align:left;padding:0;display:flex;flex-direction:column;gap:3px}
+.art-title{font-weight:600;font-size:13.5px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.art-chips{display:flex;gap:4px;flex-wrap:wrap}
+.art-edit{border-top:1px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:8px}
+.lockrow{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted)}
+.lockrow input{accent-color:var(--accent)}
+.empty{font-size:13px;color:var(--muted);text-align:center;padding:14px 8px;border:1px solid var(--line);border-radius:10px}
+
+.hint{position:absolute;left:16px;bottom:16px;max-width:min(600px,calc(100% - 410px));background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:12.5px;color:var(--muted);box-shadow:var(--shadow);line-height:1.5}
+.hint kbd{font:11.5px var(--mono);background:var(--panel-2);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--ink)}
+.readout{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font:12px var(--mono);padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translate(14px,14px);font-variant-numeric:tabular-nums;z-index:5}
+.info{position:absolute;z-index:6;width:min(320px,calc(100% - 32px));background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px}
+.info-head{display:flex;align-items:flex-start;gap:8px}
+.info-head div{flex:1;min-width:0}
+.info-kind{font:11px var(--mono);text-transform:uppercase;letter-spacing:.08em;color:var(--accent)}
+.info h3{margin:1px 0 0;font-size:14.5px;line-height:1.25;text-wrap:balance}
+.info-x{border:0;background:none;font-size:18px;line-height:1;color:var(--muted);padding:2px 4px;border-radius:6px}
+.info-x:hover{background:var(--panel-2);color:var(--ink)}
+.info dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px}
+.info dt{color:var(--muted)}
+.info dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+.info .big{font:600 20px/1.1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.info p{margin:0;font-size:12px;color:var(--muted);line-height:1.4}
+.toast{position:absolute;left:50%;top:70px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;z-index:6;max-width:calc(100% - 32px)}
+.ghost{position:absolute;width:64px;height:64px;border-radius:8px;overflow:hidden;pointer-events:none;box-shadow:var(--shadow);border:2px solid var(--accent);background:var(--panel);transform:translate(-50%,-50%);z-index:7;display:grid;place-items:center;font:10px var(--mono);color:var(--muted)}
+.ghost img{width:100%;height:100%;object-fit:contain}
+.dropcover{position:absolute;inset:0;background:color-mix(in srgb,var(--accent) 14%,transparent);border:3px dashed var(--accent);display:grid;place-items:center;z-index:8;pointer-events:none}
+.dropcover span{background:var(--panel);padding:10px 16px;border-radius:10px;font-weight:600;box-shadow:var(--shadow)}
+.walkpad{position:absolute;left:16px;bottom:84px;display:grid;grid-template-columns:repeat(3,52px);grid-template-rows:repeat(2,52px);gap:6px}
+.walkpad button{border:1px solid var(--line);background:var(--panel);border-radius:10px;font-size:18px;box-shadow:var(--shadow);touch-action:none;user-select:none;-webkit-user-select:none}
+.walkpad .up{grid-column:2}.walkpad .left{grid-column:1;grid-row:2}.walkpad .down{grid-column:2;grid-row:2}.walkpad .right{grid-column:3;grid-row:2}
+.crosshair{position:absolute;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:rgba(255,255,255,.85);box-shadow:0 0 0 1px rgba(0,0,0,.35);pointer-events:none}
+
+@media (max-width:760px){
+  .top{right:16px}
+  .panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:52%;border-radius:14px 14px 0 0;border-bottom:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+  .panel[data-collapsed="true"] .panel-body{display:none}
+  .sheet-toggle{display:inline-block}
+  .hint{display:none}
+  .brand p{display:none}
+  .walkpad{bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+  #app[data-sheet="open"] .walkpad{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app" data-sheet="closed">
+  <canvas id="c" tabindex="0" aria-label="3D view of exhibition room 6"></canvas>
+  <div class="crosshair" id="crosshair" hidden></div>
+
+  <div class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div>
+        <h1>Kiállítótér 6 · E-102</h1>
+        <p>12,025 × 15,00 m · 178,95 m² · ceiling 329 cm</p>
+      </div>
+    </div>
+    <div class="views" role="group" aria-label="View">
+      <button id="v-orbit" aria-pressed="true">3D</button>
+      <button id="v-plan" aria-pressed="false">Plan</button>
+      <button id="v-walk" aria-pressed="false">Walk</button>
+    </div>
+    <label class="walkstart" id="walkstart" hidden>Start at
+      <select id="walkFrom">
+        <option value="stair">Stair entrance (north)</option>
+        <option value="room5">Room 5 entrance (south)</option>
+        <option value="sw">South-west corner</option>
+        <option value="here">Where I was</option>
+      </select>
+    </label>
+  </div>
+
+  <aside class="panel" id="panel" data-collapsed="true" aria-label="Artworks and walls">
+    <div class="panel-head">
+      <div class="tabs" role="tablist">
+        <button role="tab" id="t-art" aria-selected="true" aria-controls="p-art">Artworks <span class="count" id="artCount">0</span></button>
+        <button role="tab" id="t-walls" aria-selected="false" aria-controls="p-walls">Walls</button>
+      </div>
+      <button class="sheet-toggle" id="sheetToggle" aria-expanded="false">Show</button>
+    </div>
+    <div class="panel-body">
+      <section class="tabpane" id="p-art" role="tabpanel" aria-labelledby="t-art">
+        <div class="dropzone" id="dropzone">
+          <p><b>Drop images</b> (PNG, JPG, WebP…) or an <b>Excel / CSV list</b> anywhere on this page, or pick files:</p>
+          <div class="actions">
+            <button class="btn primary" id="addImgBtn">Add images</button>
+            <button class="btn" id="addSheetBtn">Import Excel / CSV</button>
+          </div>
+          <p>A list needs a title and a size (width and height in cm, or one “size” column like <span style="font-family:var(--mono)">82,5 x 76,5</span>). An <b>image</b> column with file names links each row to its picture.</p>
+        </div>
+        <input type="file" id="imgInput" accept="image/*" multiple hidden>
+        <input type="file" id="sheetInput" accept=".xlsx,.xls,.xlsm,.ods,.csv,.tsv,.txt,text/csv" hidden>
+        <input type="file" id="replaceInput" accept="image/*" hidden>
+
+        <div class="filter" role="group" aria-label="Show">
+          <button id="f-all" aria-pressed="true">All</button>
+          <button id="f-todo" aria-pressed="false">Not hung</button>
+          <button id="f-hung" aria-pressed="false">Hung</button>
+          <button id="f-issue" aria-pressed="false">Needs a look</button>
+        </div>
+        <div class="artlist" id="artList"></div>
+
+        <div class="opts">
+          <label>New artworks hang with their centre at <input type="number" id="optCentre" step="1" min="30" max="300"> cm</label>
+          <label><input type="checkbox" id="optSlide"> Only slide artworks sideways when dragging (keep the height)</label>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="copyArtBtn">Copy hanging list</button>
+          <button class="btn danger" id="clearArtBtn">Remove all artworks</button>
+        </div>
+        <textarea class="copyOut" id="copyArtOut" readonly hidden aria-label="Hanging list as text"></textarea>
+      </section>
+
+      <section class="tabpane" id="p-walls" role="tabpanel" aria-labelledby="t-walls" hidden>
+        <p class="legend"><b>White</b> mobile walls can be dragged in the 3D or Plan view. <b>Pink</b> drywalls are fixed. Positions are the wall's centre, measured in cm from the <b>west</b> wall (X) and the <b>south</b> wall (Y). 0° runs west–east, 90° runs south–north. Artworks hung on a mobile wall move with it.</p>
+        <div class="walls" id="walls"></div>
+        <div class="opts">
+          <label><input type="checkbox" id="optSnap" checked> Snap walls to 5 cm and 15°, artworks to 1 cm</label>
+          <label><input type="checkbox" id="optDry"> Let me move the drywalls too</label>
+          <label><input type="checkbox" id="optLabels" checked> Show wall labels</label>
+        </div>
+        <div class="actions">
+          <button class="btn primary" id="copyBtn">Copy wall positions</button>
+          <button class="btn danger" id="resetBtn">Reset walls to drawing</button>
+        </div>
+        <textarea class="copyOut" id="copyOut" readonly hidden aria-label="Positions as text"></textarea>
+      </section>
+    </div>
+  </aside>
+
+  <div class="hint" id="hint"></div>
+  <div class="readout" id="readout" hidden></div>
+  <div class="info" id="info" role="dialog" aria-label="Measurements" hidden></div>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <div class="ghost" id="ghost" hidden></div>
+  <div class="dropcover" id="dropcover" hidden><span>Drop to add to the artwork list</span></div>
+  <div class="walkpad" id="walkpad" hidden>
+    <button class="up" data-k="f" aria-label="Walk forward">▲</button>
+    <button class="left" data-k="l" aria-label="Step left">◀</button>
+    <button class="down" data-k="b" aria-label="Walk back">▼</button>
+    <button class="right" data-k="r" aria-label="Step right">▶</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.158.0/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+(() => {
+// ---------------------------------------------------------------------------
+// Measured data (same numbers as vasarely_room6.py; metres, X east, Y north, Z up)
+// ---------------------------------------------------------------------------
+const W = 12.025, L = 15.0, CEIL = 3.29, WALL_T = 0.6;
+const BENCH_H = 0.37, BENCH_D = 0.69;
+const PILLAR = 0.8, PILLAR_X0 = 5.77;
+const PA_Y0 = L - 4.095 - PILLAR, PB_Y0 = PA_Y0 - 4.37 - PILLAR, PX = PILLAR_X0 + PILLAR / 2;
+const MOB_T = 0.295, FEET = 0.18, MOB_H = 2.72, DRY_T = 0.125, DRY_H = 3.0, GAP = 0.23;
+const SILL = 1.33, EYE = 1.6;
+
+const OPENINGS = {
+  N: [["door", 7.91, 9.78, 0, 2.675]],
+  S: [["door", 1.78, 4.28, 0, 2.675]],
+  E: [["window", 1.18, 2.48, BENCH_H, BENCH_H + 2.54], ["window", 6.40, 7.70, BENCH_H, BENCH_H + 2.54],
+      ["window", L - 2.02 - 1.29, L - 2.02, BENCH_H, BENCH_H + 2.54]],
+  W: [["window", 2.10, 3.36, BENCH_H, BENCH_H + 2.52], ["window", 7.26, 8.54, BENCH_H, BENCH_H + 2.52],
+      ["window", 12.49, 13.60, BENCH_H, BENCH_H + 2.52]],
+};
+const SURF = {
+  N: { o: [0, L], r: [1, 0], n: [0, -1], len: W, z0: 0, name: "North wall" },
+  S: { o: [W, 0], r: [-1, 0], n: [0, 1], len: W, z0: 0, name: "South wall 6/7" },
+  E: { o: [W, L], r: [0, -1], n: [-1, 0], len: L, z0: BENCH_H, name: "East wall" },
+  W: { o: [0, 0], r: [0, 1], n: [1, 0], len: L, z0: BENCH_H, name: "West wall" },
+};
+const COL = {
+  wall: [0.93, 0.90, 0.84], mobile: [0.95, 0.93, 0.88], drywall: [0.91, 0.74, 0.72], pillar: [0.90, 0.88, 0.83],
+  floor: [0.60, 0.36, 0.27], ceiling: [0.97, 0.97, 0.96], bench: [0.92, 0.91, 0.88], glass: [0.62, 0.72, 0.80],
+  door: [0.33, 0.24, 0.18], reveal: [0.88, 0.86, 0.80], frame: [0.08, 0.08, 0.08], person: [0.25, 0.35, 0.55],
+};
+
+function part(id, label, short, p0, p1, t, z0, z1, mobile) {
+  const dx = p1[0] - p0[0], dy = p1[1] - p0[1];
+  return { id, label, short, cx: (p0[0] + p1[0]) / 2, cy: (p0[1] + p1[1]) / 2,
+           ang: Math.atan2(dy, dx), len: Math.hypot(dx, dy), t, z0, z1, mobile };
+}
+const PA_C = PA_Y0 + PILLAR / 2, PB_C = PB_Y0 + PILLAR / 2;
+const DEFAULT_PARTS = () => [
+  part("MOB4", "Nagy mobilfal", "Mobile wall 4 m", [PX, PA_Y0 + PILLAR + 0.03], [PX, PA_Y0 + PILLAR + 0.03 + 4], MOB_T, FEET, FEET + MOB_H, true),
+  part("MOB2N", "Kis mobilfal (észak)", "Mobile wall 2 m", [PILLAR_X0 - GAP - 2, PA_C], [PILLAR_X0 - GAP, PA_C], MOB_T, FEET, FEET + MOB_H, true),
+  part("MOB2S", "Kis mobilfal (dél)", "Mobile wall 2 m", [PILLAR_X0 - GAP - 2, PB_C], [PILLAR_X0 - GAP, PB_C], MOB_T, FEET, FEET + MOB_H, true),
+  part("GK25", "Gipszkarton fal", "Drywall 2.5 m, between pillars", [PX, PA_Y0 - 2.5], [PX, PA_Y0], DRY_T, 0, DRY_H, false),
+  part("GK2S", "Gipszkarton fal", "Drywall 2 m, towards entrance", [PX, PB_Y0 - 2], [PX, PB_Y0], DRY_T, 0, DRY_H, false),
+  part("GK2E", "Gipszkarton fal", "Drywall 2 m, towards east", [PILLAR_X0 + PILLAR, PB_C], [PILLAR_X0 + PILLAR + 2, PB_C], DRY_T, 0, DRY_H, false),
+];
+let parts = DEFAULT_PARTS();
+let arts = [];
+const DEFAULTS = Object.fromEntries(DEFAULT_PARTS().map(p => [p.id, { cx: p.cx, cy: p.cy, ang: p.ang }]));
+
+const OBSTACLES = [
+  { name: "north pillar", cx: PX, cy: PA_C, hx: PILLAR / 2, hy: PILLAR / 2, ang: 0, level: "err" },
+  { name: "south pillar", cx: PX, cy: PB_C, hx: PILLAR / 2, hy: PILLAR / 2, ang: 0, level: "err" },
+  { name: "west radiator bench", cx: BENCH_D / 2, cy: L / 2, hx: BENCH_D / 2, hy: L / 2, ang: 0, level: "err" },
+  { name: "east radiator bench", cx: W - BENCH_D / 2, cy: L / 2, hx: BENCH_D / 2, hy: L / 2, ang: 0, level: "err" },
+  { name: "stair door (keep 1 m clear)", cx: (7.91 + 9.78) / 2, cy: L - 0.5, hx: (9.78 - 7.91) / 2, hy: 0.5, ang: 0, level: "warn" },
+  { name: "room 5 door (keep 1 m clear)", cx: W - (1.78 + 4.28) / 2, cy: 0.5, hx: 1.25, hy: 0.5, ang: 0, level: "warn" },
+];
+
+const SAMPLE_CSV = `title,width_cm,height_cm,depth_cm,image,wall,offset_cm,centre_cm,note
+PÉLDA – magángyűjteményi mű (max. klasszikus Vasarely keret),82.5,76.5,3.3,,GK25_W,40,150,keretméret még nincs – max. méret
+PÉLDA – piros absztrakt 1,60,80,3,,GK25_E,20,150,a 2.5 m-es falon egymás mellett?
+PÉLDA – piros absztrakt 2,60,80,3,,GK25_E,150,150,
+PÉLDA – textilterv (Makláry),50,50,3,,,,150,csak ha megérkezik
+PÉLDA – Életrajz / teremszöveg,120,160,1,,N,1000,150,
+PÉLDA – nagy mű 4 m-es mobilfalon,150,120,4,,MOB4_W,120,150,`;
+
+// ---------------------------------------------------------------------------
+// Persistence (this browser only): layout + list in localStorage, images in IndexedDB
+// ---------------------------------------------------------------------------
+const KEY = "vasarely-room6-layout-v1", ART_KEY = "vasarely-room6-art-v1", UI_KEY = "vasarely-room6-ui-v1";
+const opts = { snap: true, dry: false, labels: true, centre: 150, slide: false };
+const ui = { tab: "art", filter: "all" };
+function load() {
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (s) {
+      for (const p of parts) if (s.parts && s.parts[p.id]) Object.assign(p, s.parts[p.id]);
+      Object.assign(opts, s.opts || {});
+    }
+  } catch (e) {}
+  try { Object.assign(ui, JSON.parse(localStorage.getItem(UI_KEY) || "{}")); } catch (e) {}
+}
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify({
+      parts: Object.fromEntries(parts.map(p => [p.id, { cx: p.cx, cy: p.cy, ang: p.ang }])), opts }));
+  } catch (e) {}
+}
+function saveUi() { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) {} }
+load();
+
+const idb = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open("vasarely-room6", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("img");
+    r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+  }));
+  const run = (mode, fn) => open().then(db => new Promise((res, rej) => {
+    const tx = db.transaction("img", mode), st = tx.objectStore("img"), req = fn(st);
+    tx.oncomplete = () => res(req && req.result); tx.onerror = () => rej(tx.error);
+  }));
+  return {
+    put: (k, v) => run("readwrite", s => s.put(v, k)).catch(() => {}),
+    get: k => run("readonly", s => s.get(k)).catch(() => null),
+    del: k => run("readwrite", s => s.delete(k)).catch(() => {}),
+    clear: () => run("readwrite", s => s.clear()).catch(() => {}),
+  };
+})();
+
+// ---------------------------------------------------------------------------
+// Three.js scene
+// ---------------------------------------------------------------------------
+const canvas = document.getElementById("c");
+const app = document.getElementById("app");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+
+const srgb = c => new THREE.Color().setRGB(c[0], c[1], c[2], THREE.SRGBColorSpace);
+const mat = (key, o = {}) => new THREE.MeshStandardMaterial({ color: srgb(COL[key]), roughness: 0.85, ...o });
+const MAT = {
+  wall: mat("wall"), reveal: mat("reveal"), door: mat("door", { roughness: 0.6 }), bench: mat("bench"),
+  pillar: mat("pillar"), ceiling: mat("ceiling", { side: THREE.DoubleSide }), frame: mat("frame", { roughness: 0.4 }),
+  glass: mat("glass", { roughness: 0.1, transparent: true, opacity: 0.55 }), person: mat("person"),
+  mobile: mat("mobile"), drywall: mat("drywall"),
+};
+
+const toV = (x, y, z) => new THREE.Vector3(x, z, -y);
+let TAG = null;   // what a click on the next boxes should describe
+function box(cx, cy, cz, sx, sy, sz, rot, m, parent, shadow = true) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(sx, sz, sy), m);
+  mesh.userData.info = TAG;
+  mesh.position.copy(toV(cx, cy, cz));
+  mesh.rotation.y = rot;
+  mesh.castShadow = shadow; mesh.receiveShadow = true;
+  parent.add(mesh);
+  return mesh;
+}
+function surfBox(s, u0, u1, z0, z1, off0, off1, m, parent) {
+  if (u1 - u0 < 1e-4 || z1 - z0 < 1e-4) return;
+  const u = (u0 + u1) / 2, off = (off0 + off1) / 2;
+  const x = s.o[0] + s.r[0] * u + s.n[0] * off, y = s.o[1] + s.r[1] * u + s.n[1] * off;
+  box(x, y, (z0 + z1) / 2, u1 - u0, Math.abs(off1 - off0), z1 - z0, Math.atan2(s.r[1], s.r[0]), m, parent);
+}
+
+function gridTexture() {
+  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const g = c.getContext("2d");
+  g.fillStyle = "#" + srgb(COL.floor).getHexString(); g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = "rgba(255,235,220,.16)"; g.lineWidth = 1;
+  for (let i = 1; i < 4; i++) { g.beginPath(); g.moveTo(i * 64, 0); g.lineTo(i * 64, 256); g.moveTo(0, i * 64); g.lineTo(256, i * 64); g.stroke(); }
+  g.strokeStyle = "rgba(255,235,220,.42)"; g.lineWidth = 3; g.strokeRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+const room = new THREE.Group(); scene.add(room);
+{
+  const fw = W + 2 * WALL_T, fl = L + 2 * WALL_T;
+  const tex = gridTexture(); tex.repeat.set(fw, fl); tex.offset.set(1 - WALL_T % 1, 1 - WALL_T % 1);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55 }));
+  floor.rotation.x = -Math.PI / 2; floor.position.copy(toV(W / 2, L / 2, 0)); floor.receiveShadow = true; floor.userData.info = { type: "floor" };
+  room.add(floor);
+  box(W / 2, L / 2, -0.06, fw, fl, 0.1, 0, mat("floor"), room, false);
+}
+const ceiling = new THREE.Group(); scene.add(ceiling);
+{
+  const c = new THREE.Mesh(new THREE.PlaneGeometry(W, L), MAT.ceiling);
+  c.rotation.x = Math.PI / 2; c.position.copy(toV(W / 2, L / 2, CEIL)); c.userData.info = { type: "ceiling" }; ceiling.add(c);
+  const lm = new THREE.MeshBasicMaterial({ color: 0xfffdf6, side: THREE.DoubleSide });
+  for (const x of [3, 9]) for (const y of [3, 7.5, 12]) {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 3), lm);
+    p.rotation.x = Math.PI / 2; p.position.copy(toV(x, y, CEIL - 0.01)); ceiling.add(p);
+  }
+  ceiling.visible = false;
+}
+const wallGroups = {};
+for (const key of ["N", "S", "E", "W"]) {
+  TAG = { type: "wall", key };
+  const g = new THREE.Group(); wallGroups[key] = g; room.add(g);
+  const s = SURF[key], ops = [...(OPENINGS[key] || [])].sort((a, b) => a[1] - b[1]);
+  let u = -WALL_T;
+  for (const [kind, u0, u1, z0, z1] of ops) {
+    surfBox(s, u, u0, 0, CEIL, -WALL_T, 0, MAT.wall, g);
+    surfBox(s, u0, u1, z1, CEIL, -WALL_T, 0, MAT.wall, g);
+    if (kind === "window") {
+      surfBox(s, u0, u1, 0, SILL, -WALL_T, -0.30, MAT.wall, g);
+      surfBox(s, u0, u1, SILL, z1, -WALL_T + 0.05, -WALL_T + 0.07, MAT.glass, g);
+      surfBox(s, u0 - 0.02, u0, z0, z1, -WALL_T, 0, MAT.reveal, g);
+      surfBox(s, u1, u1 + 0.02, z0, z1, -WALL_T, 0, MAT.reveal, g);
+    } else {
+      surfBox(s, u0 + 0.10, u1 - 0.10, 0, z1 - 0.08, -0.35, -0.30, MAT.door, g);
+      surfBox(s, u0, u0 + 0.10, 0, z1, -0.35, 0.02, MAT.reveal, g);
+      surfBox(s, u1 - 0.10, u1, 0, z1, -0.35, 0.02, MAT.reveal, g);
+      surfBox(s, u0, u1, z1 - 0.08, z1, -0.35, 0.02, MAT.reveal, g);
+    }
+    u = u1;
+  }
+  surfBox(s, u, s.len + WALL_T, 0, CEIL, -WALL_T, 0, MAT.wall, g);
+}
+TAG = { type: "bench", side: "west" };
+box(BENCH_D / 2, L / 2, BENCH_H / 2, BENCH_D, L, BENCH_H, 0, MAT.bench, room);
+TAG = { type: "bench", side: "east" };
+box(W - BENCH_D / 2, L / 2, BENCH_H / 2, BENCH_D, L, BENCH_H, 0, MAT.bench, room);
+TAG = { type: "pillar", name: "North pillar", cy: PA_C };
+box(PX, PA_C, CEIL / 2, PILLAR, PILLAR, CEIL, 0, MAT.pillar, room);
+TAG = { type: "pillar", name: "South pillar", cy: PB_C };
+box(PX, PB_C, CEIL / 2, PILLAR, PILLAR, CEIL, 0, MAT.pillar, room);
+{
+  TAG = { type: "person" };
+  box(2.6, 11.5, 0.72, 0.45, 0.25, 1.44, 0, MAT.person, room);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 14), MAT.person);
+  head.position.copy(toV(2.6, 11.5, 1.58)); head.castShadow = true; head.userData.info = TAG; room.add(head);
+  TAG = null;
+}
+
+function textCanvas(text, { size = 64, color = "#1d1d1d", bg = null, pad = 18 } = {}) {
+  const c = document.createElement("canvas"), g = c.getContext("2d");
+  const font = `600 ${size}px Archivo, system-ui, sans-serif`;
+  g.font = font;
+  const w = Math.ceil(g.measureText(text).width) + pad * 2, h = Math.ceil(size * 1.5);
+  c.width = w; c.height = h;
+  g.font = font; g.textAlign = "center"; g.textBaseline = "middle";
+  if (bg) { g.fillStyle = bg; const r = h / 2; g.beginPath(); g.roundRect ? g.roundRect(0, 0, w, h, r) : g.rect(0, 0, w, h); g.fill(); }
+  g.fillStyle = color; g.fillText(text, w / 2, h / 2 + 2);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+  return { tex: t, aspect: w / h };
+}
+const floorLabels = new THREE.Group(); scene.add(floorLabels);
+function floorText(text, x, y, rot, height) {
+  const { tex, aspect } = textCanvas(text, { color: "rgba(40,22,16,.8)" });
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(height * aspect, height), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2;
+  const g = new THREE.Group(); g.add(m); g.position.copy(toV(x, y, 0.005)); g.rotation.y = rot;
+  floorLabels.add(g);
+}
+for (const [id, s] of Object.entries(SURF)) {
+  const u = (id === "N" || id === "S") ? 3.0 : s.len / 2;
+  const off = (id === "N" || id === "S") ? 0.45 : BENCH_D + 0.45;
+  floorText(id, s.o[0] + s.r[0] * u + s.n[0] * off, s.o[1] + s.r[1] * u + s.n[1] * off, Math.atan2(s.r[1], s.r[0]), 0.42);
+}
+floorText("KIÁLLÍTÓTÉR 6  (E-102)", W / 2, 1.2, 0, 0.42);
+floorText("lépcső / előtér felé", 8.85, L - 0.6, 0, 0.32);
+floorText("5-ös terem felé", 9.0, 0.55, 0, 0.32);
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0x8a6a5a, 0.95); scene.add(hemi);
+scene.add(new THREE.AmbientLight(0xffffff, 0.35));
+const sun = new THREE.DirectionalLight(0xffffff, 1.1);
+sun.position.copy(toV(W / 2 + 4, L / 2 - 5, 12)); sun.target.position.copy(toV(W / 2, L / 2, 0));
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -12, right: 12, top: 12, bottom: -12, near: 1, far: 40 });
+sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02;
+scene.add(sun, sun.target);
+
+// ---------------------------------------------------------------------------
+// Free-standing walls
+// ---------------------------------------------------------------------------
+const partsGroup = new THREE.Group(); scene.add(partsGroup);
+const partPanels = [];
+function buildPart(p) {
+  const g = new THREE.Group();
+  const m = (p.mobile ? MAT.mobile : MAT.drywall).clone();
+  const panel = new THREE.Mesh(new THREE.BoxGeometry(p.len, p.z1 - p.z0, p.t), m);
+  panel.position.y = (p.z0 + p.z1) / 2; panel.castShadow = panel.receiveShadow = true;
+  panel.userData.part = p; g.add(panel); partPanels.push(panel);
+  if (p.mobile) for (const f of [0.12, 0.88]) {
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.12, p.z0, p.t + 0.25), MAT.frame);
+    foot.position.set((f - 0.5) * p.len, p.z0 / 2, 0); foot.castShadow = true; foot.userData.part = p; g.add(foot);
+  }
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(panel.geometry), new THREE.LineBasicMaterial({ color: 0x2447c8 }));
+  edges.position.copy(panel.position); edges.visible = false; g.add(edges);
+  const { tex, aspect } = textCanvas(p.id, { size: 56, color: "#ffffff", bg: p.mobile ? "#2447c8" : "#b8605a", pad: 22 });
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: false }));
+  sprite.scale.set(0.34 * aspect, 0.34, 1); sprite.position.y = p.z1 + 0.35; sprite.renderOrder = 10;
+  g.add(sprite);
+  p.obj = { g, panel, edges, sprite, m };
+  partsGroup.add(g);
+  placePart(p);
+}
+function placePart(p) {
+  p.obj.g.position.copy(toV(p.cx, p.cy, 0)); p.obj.g.rotation.y = p.ang;
+  for (const a of arts) if (a.wall && a.wall.startsWith(p.id + "_")) placeArt(a);
+}
+parts.forEach(buildPart);
+
+function obbOf(p, withFeet = true) {
+  return { cx: p.cx, cy: p.cy, hx: p.len / 2, hy: (p.mobile && withFeet ? p.t + 0.25 : p.t) / 2, ang: p.ang };
+}
+function corners(b) {
+  const c = Math.cos(b.ang), s = Math.sin(b.ang), out = [];
+  for (const [sx, sy] of [[1, 1], [1, -1], [-1, -1], [-1, 1]])
+    out.push([b.cx + c * sx * b.hx - s * sy * b.hy, b.cy + s * sx * b.hx + c * sy * b.hy]);
+  return out;
+}
+function overlap(a, b) {
+  const ca = corners(a), cb = corners(b);
+  const axes = [a.ang, a.ang + Math.PI / 2, b.ang, b.ang + Math.PI / 2].map(t => [Math.cos(t), Math.sin(t)]);
+  for (const [ax, ay] of axes) {
+    let a0 = Infinity, a1 = -Infinity, b0 = Infinity, b1 = -Infinity;
+    for (const [x, y] of ca) { const d = x * ax + y * ay; a0 = Math.min(a0, d); a1 = Math.max(a1, d); }
+    for (const [x, y] of cb) { const d = x * ax + y * ay; b0 = Math.min(b0, d); b1 = Math.max(b1, d); }
+    if (a1 <= b0 + 0.005 || b1 <= a0 + 0.005) return false;
+  }
+  return true;
+}
+function evaluate() {
+  for (const p of parts) {
+    const issues = [], b = obbOf(p);
+    if (corners(b).some(([x, y]) => x < -0.005 || x > W + 0.005 || y < -0.005 || y > L + 0.005)) issues.push(["err", "goes through the outer wall"]);
+    for (const o of OBSTACLES) if (overlap(b, o)) issues.push([o.level, o.level === "warn" ? `in front of the ${o.name}` : `hits the ${o.name}`]);
+    for (const q of parts) if (q !== p && overlap(b, obbOf(q))) issues.push(["err", `hits ${q.id}`]);
+    p.issues = issues;
+    p.level = issues.some(i => i[0] === "err") ? "err" : issues.length ? "warn" : "ok";
+    p.obj.m.emissive.setHex(p.level === "err" ? 0x7a1010 : p.level === "warn" ? 0x5a3a00 : 0x000000);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Hanging surfaces (main walls + both faces of every free-standing wall)
+// ---------------------------------------------------------------------------
+const dirLetter = n => Math.abs(n[0]) > Math.abs(n[1]) ? (n[0] > 0 ? "E" : "W") : (n[1] > 0 ? "N" : "S");
+const DIR_WORD = { N: "north", S: "south", E: "east", W: "west" };
+function partSurfaces(p) {
+  const d = [Math.cos(p.ang), Math.sin(p.ang)];
+  const p0 = [p.cx - d[0] * p.len / 2, p.cy - d[1] * p.len / 2], p1 = [p.cx + d[0] * p.len / 2, p.cy + d[1] * p.len / 2];
+  return [["A", [-d[1], d[0]]], ["B", [d[1], -d[0]]]].map(([side, n]) => {
+    const r = [-n[1], n[0]];
+    const left = ((p0[0] - p1[0]) * r[0] + (p0[1] - p1[1]) * r[1]) < 0 ? p0 : p1;
+    const letter = dirLetter(n);
+    return { id: `${p.id}_${side}`, part: p, o: [left[0] + n[0] * p.t / 2, left[1] + n[1] * p.t / 2], r, n, len: p.len,
+             z0: p.z0, z1: p.z1, name: `${p.id} · ${DIR_WORD[letter]} side`, letter, open: null };
+  });
+}
+function surfaces() {
+  const out = {};
+  for (const [id, s] of Object.entries(SURF)) out[id] = { id, ...s, z1: CEIL, open: id, letter: id };
+  for (const p of parts) for (const s of partSurfaces(p)) out[s.id] = s;
+  return out;
+}
+const exportWallId = s => s.part ? `${s.part.id}_${s.letter}` : s.id;
+
+// ---------------------------------------------------------------------------
+// Artworks
+// ---------------------------------------------------------------------------
+const artGroup = new THREE.Group(); scene.add(artGroup);
+const artMeshes = [];
+const unitBox = new THREE.BoxGeometry(1, 1, 1);
+const unitEdges = new THREE.EdgesGeometry(unitBox);
+const newId = () => "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+function placeholderTexture(a) {
+  const c = document.createElement("canvas"); c.width = 512; c.height = Math.max(64, Math.round(512 / Math.max(0.2, a.w / a.h)));
+  if (c.height > 1024) { c.height = 1024; }
+  const g = c.getContext("2d");
+  g.fillStyle = "#6b7285"; g.fillRect(0, 0, c.width, c.height);
+  g.strokeStyle = "rgba(255,255,255,.18)"; g.lineWidth = 2;
+  for (let i = -c.height; i < c.width; i += 28) { g.beginPath(); g.moveTo(i, c.height); g.lineTo(i + c.height, 0); g.stroke(); }
+  g.fillStyle = "#fff"; g.textAlign = "center"; g.textBaseline = "middle";
+  let size = 40; g.font = `600 ${size}px Archivo, system-ui, sans-serif`;
+  const words = a.title.split(/\s+/), lines = []; let line = "";
+  for (const w of words) { const t = line ? line + " " + w : w; if (g.measureText(t).width > c.width - 40 && line) { lines.push(line); line = w; } else line = t; }
+  if (line) lines.push(line);
+  const shown = lines.slice(0, Math.max(1, Math.floor((c.height - 20) / (size * 1.2))));
+  shown.forEach((l, i) => g.fillText(l, c.width / 2, c.height / 2 + (i - (shown.length - 1) / 2) * size * 1.2));
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+function buildArt(a) {
+  const front = new THREE.MeshStandardMaterial({ roughness: 0.55, color: 0xffffff });
+  const mesh = new THREE.Mesh(unitBox, [MAT.frame, MAT.frame, MAT.frame, MAT.frame, front, MAT.frame]);
+  mesh.castShadow = true; mesh.receiveShadow = true; mesh.userData.art = a;
+  const edges = new THREE.LineSegments(unitEdges, new THREE.LineBasicMaterial({ color: 0x2447c8, depthTest: false }));
+  edges.renderOrder = 11; edges.visible = false; mesh.add(edges);
+  a.obj = { mesh, front, edges, tex: null };
+  artGroup.add(mesh); artMeshes.push(mesh);
+  setArtTexture(a);
+  placeArt(a);
+}
+function setArtTexture(a) {
+  if (!a.obj) return;
+  if (a.obj.tex) a.obj.tex.dispose();
+  let t;
+  if (a.imgEl) { t = new THREE.Texture(a.imgEl); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.needsUpdate = true; }
+  else t = placeholderTexture(a);
+  a.obj.tex = t; a.obj.front.map = t; a.obj.front.needsUpdate = true;
+}
+function placeArt(a) {
+  if (!a.obj) return;
+  const s = a.wall && surfaces()[a.wall];
+  if (!s) { a.obj.mesh.visible = false; return; }
+  const uc = a.u + a.w / 2, off = a.d / 2 + 0.004;
+  const x = s.o[0] + s.r[0] * uc + s.n[0] * off, y = s.o[1] + s.r[1] * uc + s.n[1] * off;
+  a.obj.mesh.position.copy(toV(x, y, a.zc));
+  a.obj.mesh.rotation.set(0, Math.atan2(s.n[0], -s.n[1]), 0);
+  a.obj.mesh.scale.set(a.w, a.h, a.d);
+  a.obj.mesh.visible = true;
+  if (a === selArt) placeHandle();
+}
+function removeArtObj(a) {
+  if (!a.obj) return;
+  artGroup.remove(a.obj.mesh);
+  artMeshes.splice(artMeshes.indexOf(a.obj.mesh), 1);
+  a.obj.tex && a.obj.tex.dispose(); a.obj.front.dispose();
+  a.obj = null;
+}
+function checkArt(a, S = surfaces()) {
+  const out = [];
+  if (a.sizeGuessed) out.push(["warn", "size not known yet – set the real size"]);
+  const s = a.wall && S[a.wall];
+  if (!s) return out;
+  const u0 = a.u, u1 = a.u + a.w, z0 = a.zc - a.h / 2, z1 = a.zc + a.h / 2;
+  if (u0 < -0.001 || u1 > s.len + 0.001) out.push(["err", "runs off the end of the wall"]);
+  if (z0 < s.z0 - 0.001) out.push(["err", s.z0 > 0.3 && s.z0 < 0.4 ? "hangs into the radiator bench" : "reaches below the wall"]);
+  if (z1 > s.z1 + 0.001) out.push(["err", "reaches above the wall"]);
+  for (const [kind, a0, a1, oz0, oz1] of (s.open && OPENINGS[s.open]) || [])
+    if (u0 < a1 && u1 > a0 && z0 < oz1 && z1 > oz0) out.push(["err", kind === "door" ? "covers the door" : "covers a window"]);
+  for (const b of arts) {
+    if (b === a || b.wall !== a.wall) continue;
+    if (u0 < b.u + b.w - 0.001 && u1 > b.u + 0.001 && z0 < b.zc + b.h / 2 - 0.001 && z1 > b.zc - b.h / 2 + 0.001) out.push(["err", `overlaps “${b.title}”`]);
+  }
+  return out;
+}
+function evaluateArts() {
+  const S = surfaces();
+  for (const a of arts) {
+    a.issues = checkArt(a, S);
+    a.level = a.issues.some(i => i[0] === "err") ? "err" : a.issues.length ? "warn" : "ok";
+  }
+}
+
+function saveArts() {
+  try {
+    localStorage.setItem(ART_KEY, JSON.stringify(arts.map(a => ({
+      id: a.id, title: a.title, artist: a.artist, inv: a.inv, w: a.w, h: a.h, d: a.d, note: a.note, image: a.image,
+      hasImg: a.hasImg, aspect: a.aspect, lock: a.lock, wall: a.wall, u: a.u, zc: a.zc, sizeGuessed: a.sizeGuessed }))));
+  } catch (e) {
+    say("This browser is out of storage space – the list will not be kept after a reload");
+  }
+}
+async function loadArts() {
+  let list = [];
+  try { list = JSON.parse(localStorage.getItem(ART_KEY) || "[]"); } catch (e) {}
+  arts = list.map(a => ({ ...a }));
+  for (const a of arts) buildArt(a);
+  refreshAll();
+  for (const a of arts) if (a.hasImg) {
+    const blob = await idb.get(a.id);
+    if (blob) { await attachBlob(a, blob, false); placeArt(a); updateArtCard(a); }
+    else a.hasImg = false;
+  }
+}
+
+// images ---------------------------------------------------------------------
+const baseName = n => (n || "").split(/[\\/]/).pop().replace(/\.[a-z0-9]{2,5}$/i, "");
+const norm = s => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+const prettyName = n => baseName(n).replace(/[_]+/g, " ").replace(/\s+/g, " ").trim();
+const num = v => {
+  if (v === null || v === undefined || v === "") return NaN;
+  if (typeof v === "number") return v;
+  const m = String(v).replace(",", ".").match(/-?\d+(\.\d+)?/);
+  return m ? parseFloat(m[0]) : NaN;
+};
+function sizeFrom(text) {
+  const m = String(text || "").replace(/,/g, ".").match(/(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)(?:\s*[x×*]\s*(\d+(?:\.\d+)?))?\s*(mm|cm|m)?/i);
+  if (!m) return null;
+  const f = { mm: 0.001, cm: 0.01, m: 1 }[(m[4] || "cm").toLowerCase()];
+  return { w: +m[1] * f, h: +m[2] * f, d: m[3] ? +m[3] * f : null };
+}
+function loadImg(src) {
+  return new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+}
+async function shrink(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await loadImg(url);
+    const max = 1600, k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const cw = Math.max(1, Math.round(img.naturalWidth * k)), ch = Math.max(1, Math.round(img.naturalHeight * k));
+    const c = document.createElement("canvas"); c.width = cw; c.height = ch;
+    c.getContext("2d").drawImage(img, 0, 0, cw, ch);
+    const blob = await new Promise(r => c.toBlob(r, "image/webp", 0.9));
+    return { blob: blob || file, aspect: img.naturalWidth / img.naturalHeight };
+  } finally { URL.revokeObjectURL(url); }
+}
+async function attachBlob(a, blob, store = true) {
+  if (a.url) URL.revokeObjectURL(a.url);
+  a.url = URL.createObjectURL(blob);
+  a.imgEl = await loadImg(a.url);
+  a.aspect = a.imgEl.naturalWidth / a.imgEl.naturalHeight;
+  a.hasImg = true;
+  if (store) await idb.put(a.id, blob);
+  setArtTexture(a);
+}
+function newArt(fields) {
+  const a = { id: newId(), title: "Untitled", artist: "", inv: "", w: 0.6, h: 0.6, d: 0.03, note: "", image: "",
+              hasImg: false, aspect: 1, lock: true, wall: null, u: 0, zc: opts.centre / 100, sizeGuessed: false, ...fields };
+  arts.push(a); buildArt(a);
+  return a;
+}
+async function importImages(files, dropHit) {
+  const imgs = files.filter(f => /^image\//.test(f.type) || /\.(png|jpe?g|webp|gif|avif|bmp|svg|heic|tiff?)$/i.test(f.name));
+  let added = 0, matched = 0; const failed = [];
+  let lastArt = null;
+  for (const f of imgs) {
+    let res;
+    try { res = await shrink(f); } catch (e) { failed.push(f.name); continue; }
+    const key = norm(baseName(f.name));
+    let a = arts.find(x => !x.hasImg && key && (norm(baseName(x.image)) === key || norm(x.title) === key));
+    if (a) {
+      matched++;
+      await attachBlob(a, res.blob);
+      if (a.sizeGuessed) { a.h = a.w / a.aspect; }
+    } else {
+      const sz = sizeFrom(f.name);
+      const w = sz ? sz.w : 0.6, h = sz ? sz.h : 0.6 / res.aspect;
+      a = newArt({ title: prettyName(f.name).replace(/[\s_-]*\d+(?:[.,]\d+)?\s*[x×*]\s*\d+(?:[.,]\d+)?(?:\s*[x×*]\s*\d+(?:[.,]\d+)?)?\s*(?:mm|cm|m)?\s*$/i, "").trim() || prettyName(f.name) || "Untitled", image: f.name, w, h, d: sz && sz.d ? sz.d : 0.03, sizeGuessed: !sz, aspect: res.aspect });
+      await attachBlob(a, res.blob);
+      added++;
+    }
+    placeArt(a); lastArt = a;
+  }
+  if (dropHit && lastArt && imgs.length === 1) hangAt(lastArt, dropHit, lastArt.w / 2);
+  saveArts(); refreshAll();
+  const bits = [];
+  if (added) bits.push(`${added} artwork${added > 1 ? "s" : ""} added`);
+  if (matched) bits.push(`${matched} picture${matched > 1 ? "s" : ""} linked to your list`);
+  if (failed.length) bits.push(`couldn't read ${failed.join(", ")} – try saving it as PNG or JPG`);
+  if (bits.length) say(bits.join(" · "));
+  if (lastArt) selectArt(lastArt);
+}
+
+// spreadsheets ---------------------------------------------------------------
+const COLS = [
+  ["artist", /^(artist|muvesz|alkoto|kunstler)/],
+  ["title", /^(title|cim|mucim|name|megnevezes|alkotas|artwork|object|work|titel)|^mu$|^nev$/],
+  ["inv", /^(inv|leltar|lsz|catalog|katalog)|^(id|no|nr|sorszam)$/],
+  ["size", /^(size|meret|dimension|dim$|format|mass)/],
+  ["width", /^(width|szelesseg|breite)|^(w|sz|wcm|szcm)$/],
+  ["height", /^(height|magassag|hohe)|^(h|m|hcm|mcm)$/],
+  ["depth", /^(depth|melyseg|tiefe)|^(d|dcm|mely)$/],
+  ["image", /^(image|img|file|filename|kep|fajl|picture|photo|foto|bild)/],
+  ["wall", /^(wall|fal|wand)/],
+  ["offset", /^(offset|left|bal|fromleft)/],
+  ["centre", /^(centre|center|kozep|mitte)/],
+  ["note", /^(note|megjegyzes|megj|comment|bemerkung|remark)/],
+];
+function mapHeader(row) {
+  const map = {};
+  row.forEach((h, i) => {
+    const n = norm(h); if (!n) return;
+    for (const [field, re] of COLS) if (!(field in map) && re.test(n)) { map[field] = { i, mm: /mm/.test(n) && !/cm/.test(n) }; break; }
+  });
+  return map;
+}
+function parseDelimited(text) {
+  text = text.replace(/^﻿/, "");
+  const first = text.split(/\r?\n/)[0] || "";
+  const delim = [",", ";", "\t"].map(d => [d, first.split(d).length]).sort((a, b) => b[1] - a[1])[0][0];
+  const rows = []; let row = [], cur = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === delim) { row.push(cur); cur = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cur); rows.push(row); row = []; cur = ""; }
+    else cur += ch;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows;
+}
+function wallFromText(v) {
+  const t = String(v || "").trim(); if (!t) return null;
+  const S = surfaces();
+  if (S[t.toUpperCase()]) return t.toUpperCase();
+  const words = { north: "N", eszak: "N", eszaki: "N", south: "S", del: "S", deli: "S", east: "E", kelet: "E", keleti: "E", west: "W", nyugat: "W", nyugati: "W" };
+  const n = norm(t);
+  for (const [w, id] of Object.entries(words)) if (n === w || n === w + "ifal" || n === w + "fal" || n === w + "wall") return id;
+  const m = t.toUpperCase().match(/^([A-Z0-9]+)[_\s-]+([NSEWAB])$/);
+  if (m) {
+    const p = parts.find(q => q.id === m[1]);
+    if (p) { const s = partSurfaces(p).find(s => s.letter === m[2] || s.id.endsWith("_" + m[2])); if (s) return s.id; }
+  }
+  return null;
+}
+function rowsToArts(rows) {
+  let hi = rows.findIndex((r, i) => i < 15 && (() => { const m = mapHeader(r); return ("title" in m || "image" in m) && ("width" in m || "size" in m || "height" in m || "image" in m); })());
+  if (hi < 0) hi = rows.findIndex((r, i) => i < 15 && "title" in mapHeader(r));
+  if (hi < 0) return { error: "I couldn't find a header row with a title column. Add a first row like: title, width_cm, height_cm, image" };
+  const map = mapHeader(rows[hi]);
+  const get = (r, f) => map[f] ? r[map[f].i] : "";
+  const cmv = (r, f) => { const v = num(get(r, f)); return isFinite(v) ? v / 100 * (map[f].mm ? 0.1 : 1) : NaN; };
+  let added = 0, updated = 0, hung = 0, noSize = 0;
+  for (const r of rows.slice(hi + 1)) {
+    const title = String(get(r, "title") || "").trim(), image = String(get(r, "image") || "").trim();
+    if (!title && !image) continue;
+    let w = cmv(r, "width"), h = cmv(r, "height"), d = cmv(r, "depth");
+    if ((!isFinite(w) || !isFinite(h)) && map.size) { const sz = sizeFrom(get(r, "size")); if (sz) { w = sz.w; h = sz.h; if (sz.d && !isFinite(d)) d = sz.d; } }
+    const fields = { title: title || prettyName(image), artist: String(get(r, "artist") || "").trim(), inv: String(get(r, "inv") || "").trim(),
+                     note: String(get(r, "note") || "").trim(), image };
+    if (isFinite(d)) fields.d = Math.max(0.005, d);
+    const key = norm(baseName(image)) || norm(title);
+    let a = arts.find(x => x.hasImg && !x.fromSheet && key && (norm(baseName(x.image)) === key || norm(x.title) === key));
+    if (a) { Object.assign(a, fields); updated++; }
+    else { a = newArt({ ...fields }); added++; }
+    a.fromSheet = true;
+    if (isFinite(w) && isFinite(h) && w > 0 && h > 0) { a.w = w; a.h = h; a.sizeGuessed = false; a.lock = a.hasImg ? Math.abs(w / h - a.aspect) < 0.03 : true; }
+    else if (a.hasImg) { a.h = a.w / a.aspect; a.sizeGuessed = true; noSize++; }
+    else { a.sizeGuessed = true; noSize++; }
+    const wall = wallFromText(get(r, "wall"));
+    if (wall) {
+      const off = cmv(r, "offset"), c = cmv(r, "centre");
+      a.wall = wall; a.u = isFinite(off) ? off : 0.3; a.zc = isFinite(c) ? c : opts.centre / 100; hung++;
+    }
+    setArtTexture(a); placeArt(a);
+  }
+  return { added, updated, hung, noSize };
+}
+async function importSheet(file) {
+  let rows;
+  try {
+    if (/\.(csv|tsv|txt)$/i.test(file.name)) rows = parseDelimited(await file.text());
+    else {
+      if (!window.XLSX) throw new Error("The Excel reader did not load. Save the sheet as CSV and import that instead.");
+      const wb = XLSX.read(await file.arrayBuffer(), { type: "array" });
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, raw: true, defval: "" });
+    }
+  } catch (e) { say(`Couldn't open ${file.name}: ${e.message || "unknown format"}`); return; }
+  applyRows(rows, file.name);
+}
+function applyRows(rows, label) {
+  const r = rowsToArts(rows);
+  if (r.error) { say(r.error); return; }
+  saveArts(); refreshAll();
+  const bits = [`${label}: ${r.added} added`];
+  if (r.updated) bits.push(`${r.updated} matched to pictures`);
+  if (r.hung) bits.push(`${r.hung} hung on walls`);
+  if (r.noSize) bits.push(`${r.noSize} without a size`);
+  say(bits.join(" · "));
+}
+async function importFiles(list, dropHit) {
+  const files = [...list];
+  const sheets = files.filter(f => /\.(xlsx|xls|xlsm|ods|csv|tsv|txt)$/i.test(f.name));
+  for (const s of sheets) await importSheet(s);
+  const images = files.filter(f => !sheets.includes(f));
+  if (images.length) await importImages(images, dropHit);
+  if (!sheets.length && !images.length) say("Nothing to import – use images or an .xlsx / .csv file");
+  setTab("art");
+}
+
+// ---------------------------------------------------------------------------
+// Cameras and views
+// ---------------------------------------------------------------------------
+const persp = new THREE.PerspectiveCamera(55, 1, 0.05, 200);
+const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+const orbit = { target: toV(W / 2, L / 2, 0.8), r: 21, theta: Math.PI * 0.2, phi: 0.95 };
+const plan = { cx: W / 2, cy: L / 2, h: 9.2 };
+const WALK_STARTS = { stair: { x: 8.85, y: L - 0.9, yaw: Math.PI }, room5: { x: 9.0, y: 0.9, yaw: 0 }, sw: { x: 1.3, y: 1.1, yaw: -0.61 } };
+const walk = { x: 8.85, y: L - 0.9, yaw: Math.PI, pitch: -0.05 };
+let mode = "orbit", cam = persp, selPart = null, selArt = null, locked = false;
+
+function applyOrbit() {
+  const { target: t, r, theta, phi } = orbit;
+  persp.position.set(t.x + r * Math.sin(phi) * Math.sin(theta), t.y + r * Math.cos(phi), t.z + r * Math.sin(phi) * Math.cos(theta));
+  persp.up.set(0, 1, 0); persp.lookAt(t);
+  const cx = persp.position.x, cy = -persp.position.z;
+  for (const [k, s] of Object.entries(SURF)) wallGroups[k].visible = (cx - s.o[0]) * s.n[0] + (cy - s.o[1]) * s.n[1] > -0.3;
+  for (const a of arts) if (a.obj && a.wall && SURF[a.wall]) a.obj.mesh.visible = wallGroups[a.wall].visible;
+}
+function applyPlan() {
+  const a = canvas.clientWidth / Math.max(canvas.clientHeight, 1);
+  Object.assign(ortho, { left: -plan.h * a, right: plan.h * a, top: plan.h, bottom: -plan.h });
+  ortho.updateProjectionMatrix();
+  ortho.position.copy(toV(plan.cx, plan.cy, 30)); ortho.up.set(0, 0, -1); ortho.lookAt(toV(plan.cx, plan.cy, 0));
+}
+function applyWalk() {
+  persp.position.copy(toV(walk.x, walk.y, EYE));
+  persp.rotation.set(walk.pitch, walk.yaw, 0, "YXZ");
+}
+function setMode(m) {
+  if (m === mode && m !== "walk") return;
+  if (mode === "walk" && m !== "walk" && document.pointerLockElement) document.exitPointerLock?.();
+  mode = m; hideInfo();
+  for (const id of ["orbit", "plan", "walk"]) document.getElementById("v-" + id).setAttribute("aria-pressed", String(id === m));
+  cam = m === "plan" ? ortho : persp;
+  persp.fov = m === "walk" ? 70 : 55; persp.updateProjectionMatrix();
+  ceiling.visible = m === "walk";
+  for (const g of Object.values(wallGroups)) g.visible = true;
+  for (const a of arts) placeArt(a);
+  for (const p of parts) p.obj.sprite.visible = m !== "walk" && opts.labels;
+  document.getElementById("walkstart").hidden = m !== "walk";
+  document.getElementById("crosshair").hidden = m !== "walk";
+  document.getElementById("walkpad").hidden = !(m === "walk" && matchMedia("(pointer: coarse)").matches);
+  if (m === "walk") { startWalk(document.getElementById("walkFrom").value); if (selPart) selectPart(null); }
+  setHint();
+}
+function startWalk(from) {
+  if (from !== "here" && WALK_STARTS[from]) Object.assign(walk, WALK_STARTS[from], { pitch: -0.05 });
+}
+function setHint() {
+  const k = s => `<kbd>${s}</kbd>`;
+  const art = `<b>Click anything</b> to see its size · drag an artwork from the list onto a wall · drag a hung artwork to move it, its blue corner dot to resize`;
+  const txt = {
+    orbit: `${art} · drag a <b>white wall</b> to move it, ${k("R")} rotates · drag empty space to orbit, right-drag to pan, scroll to zoom`,
+    plan: `${art} · drag a <b>white wall</b> to move it, ${k("R")} rotates 15° · drag empty space to pan · scroll to zoom`,
+    walk: `Click to look with the mouse, then click again to measure whatever the dot points at · ${k("Esc")} frees the mouse · ${k("W")}${k("A")}${k("S")}${k("D")} to walk, ${k("Shift")} to hurry · with the mouse free you can drag artworks and their corner dot`,
+  }[mode];
+  document.getElementById("hint").innerHTML = txt;
+}
+
+// ---------------------------------------------------------------------------
+// Picking and wall hits
+// ---------------------------------------------------------------------------
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), ground = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+function setRay(x, y) {
+  const r = canvas.getBoundingClientRect();
+  ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ndc, cam);
+}
+const handle = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), new THREE.MeshBasicMaterial({ color: 0x2447c8, depthTest: false }));
+handle.renderOrder = 12; handle.visible = false; scene.add(handle);
+function placeHandle() {
+  const a = selArt, s = a && a.wall && surfaces()[a.wall];
+  if (!s || !a.obj || !a.obj.mesh.visible) { handle.visible = false; return; }
+  const u = a.u + a.w, off = a.d + 0.01;
+  handle.position.copy(toV(s.o[0] + s.r[0] * u + s.n[0] * off, s.o[1] + s.r[1] * u + s.n[1] * off, a.zc - a.h / 2));
+  handle.visible = true;
+}
+function pick(x, y) {
+  setRay(x, y);
+  if (handle.visible && ray.intersectObject(handle, false).length) return { kind: "handle" };
+  const hit = probe(x, y);   // nearest thing, so pillars and walls in front block the pick
+  if (!hit) return null;
+  if (hit.d.art) return { kind: "art", a: hit.d.art };
+  const p = hit.d.part;
+  return p && (p.mobile || opts.dry) && mode !== "walk" ? { kind: "part", p } : null;
+}
+function groundAt(x, y) {
+  setRay(x, y);
+  const v = new THREE.Vector3();
+  return ray.ray.intersectPlane(ground, v) ? { x: v.x, y: -v.z } : null;
+}
+// Which wall face is under the pointer, and where on it (u from its left end, z height)
+function wallHit(x, y, onlyId) {
+  const S = surfaces();
+  if (mode === "plan") {
+    const g = groundAt(x, y); if (!g) return null;
+    let best = null;
+    for (const s of Object.values(S)) {
+      if (onlyId && s.id !== onlyId) continue;
+      const dx = g.x - s.o[0], dy = g.y - s.o[1];
+      const u = dx * s.r[0] + dy * s.r[1], dist = dx * s.n[0] + dy * s.n[1];
+      if (!onlyId && (dist < -0.05 || dist > 0.9 || u < -0.3 || u > s.len + 0.3)) continue;
+      if (!best || Math.abs(dist) < best.dist) best = { s, u, z: null, dist: Math.abs(dist) };
+    }
+    return best;
+  }
+  setRay(x, y);
+  const o = ray.ray.origin, d = ray.ray.direction;
+  const O = [o.x, -o.z, o.y], D = [d.x, -d.z, d.y];
+  let best = null;
+  for (const s of Object.values(S)) {
+    if (onlyId && s.id !== onlyId) continue;
+    const den = D[0] * s.n[0] + D[1] * s.n[1];
+    if (onlyId ? Math.abs(den) < 1e-6 : den > -1e-6) continue;
+    if (!onlyId && SURF[s.id] && !wallGroups[s.id].visible) continue;
+    const t = ((s.o[0] - O[0]) * s.n[0] + (s.o[1] - O[1]) * s.n[1]) / den;
+    if (t <= 0) continue;
+    const hx = O[0] + D[0] * t, hy = O[1] + D[1] * t, hz = O[2] + D[2] * t;
+    const u = (hx - s.o[0]) * s.r[0] + (hy - s.o[1]) * s.r[1];
+    if (!onlyId && (u < -0.05 || u > s.len + 0.05 || hz < 0 || hz > s.z1 + 0.05)) continue;
+    if (!best || t < best.t) best = { s, u, z: hz, t };
+  }
+  return best;
+}
+const snapA = v => opts.snap ? Math.round(v * 100) / 100 : v;
+function hangAt(a, hit, du, dz = 0, keepZ = false) {
+  a.wall = hit.s.id;
+  a.u = snapA(hit.u - du);
+  if (!keepZ && hit.z !== null && !opts.slide) a.zc = snapA(hit.z - dz);
+  placeArt(a);
+}
+
+// ---------------------------------------------------------------------------
+// Pointer input on the 3D view
+// ---------------------------------------------------------------------------
+const snapV = (v, s) => opts.snap ? Math.round(v / s) * s : v;
+const normAng = a => { const d = 2 * Math.PI; return ((a % d) + d) % d; };
+const pointers = new Map();
+let gesture = null;
+const readout = document.getElementById("readout");
+function showReadout(x, y, text) {
+  const r = app.getBoundingClientRect();
+  readout.style.left = (x - r.left) + "px"; readout.style.top = (y - r.top) + "px";
+  readout.textContent = text; readout.hidden = false;
+}
+
+// ---------------------------------------------------------------------------
+// Click-to-measure card and hover tooltip
+// ---------------------------------------------------------------------------
+const infoEl = document.getElementById("info");
+const clampN = (v, a, b) => Math.min(b, Math.max(a, v));
+function visibleDeep(o) { for (; o; o = o.parent) if (!o.visible) return false; return true; }
+function probe(x, y) {
+  setRay(x, y);
+  for (const h of ray.intersectObjects(scene.children, true)) {
+    const o = h.object;
+    if (o === handle || o.isSprite || o.isLine || !visibleDeep(o)) continue;
+    const d = o.userData;
+    if (d.art || d.part || d.info) return { d, P: { x: h.point.x, y: -h.point.z, z: h.point.y } };
+  }
+  return null;
+}
+const cmT = v => `${fmt(v)} cm`;
+const cornerOf = s => `${DIR_WORD[dirLetter([-s.r[0], -s.r[1]])]} corner`;
+function neighbours(a, s) {
+  // closest thing to the left and right of an artwork on the same face
+  const z0 = a.zc - a.h / 2, z1 = a.zc + a.h / 2;
+  const things = arts.filter(b => b !== a && b.wall === a.wall).map(b => [b.u, b.u + b.w, `“${b.title}”`, b.zc - b.h / 2, b.zc + b.h / 2]);
+  for (const [kind, u0, u1, oz0, oz1] of (s.open && OPENINGS[s.open]) || []) things.push([u0, u1, `the ${kind}`, kind === "door" ? 0 : oz0, oz1]);
+  let L = [a.u, "the wall end"], Rr = [s.len - (a.u + a.w), "the wall end"];
+  for (const [u0, u1, name, t0, t1] of things) {
+    if (t1 <= z0 || t0 >= z1) continue;
+    if (u1 <= a.u + 0.001 && a.u - u1 < L[0]) L = [a.u - u1, name];
+    if (u0 >= a.u + a.w - 0.001 && u0 - (a.u + a.w) < Rr[0]) Rr = [u0 - (a.u + a.w), name];
+  }
+  return [L, Rr];
+}
+function describe({ d, P }) {
+  const plan = mode === "plan";
+  if (d.art) {
+    const a = d.art, s = surfaces()[a.wall];
+    const rows = [["Depth", cmT(a.d)]];
+    if (a.artist) rows.push(["Artist", esc(a.artist)]);
+    if (s) {
+      const [l, r] = neighbours(a, s);
+      rows.push(["Wall", esc(s.name)], ["Left edge", `${cmT(a.u)} from the ${cornerOf(s).replace(" corner", " end")}`],
+        ["Centre height", cmT(a.zc)], ["Bottom / top", `${fmt(a.zc - a.h / 2)} / ${cmT(a.zc + a.h / 2)}`],
+        ["Space on the left", `${cmT(l[0])} to ${esc(l[1])}`], ["Space on the right", `${cmT(r[0])} to ${esc(r[1])}`]);
+    }
+    for (const [lvl, t] of a.issues || []) rows.push([lvl === "err" ? "⚠ Problem" : "Check", esc(t)]);
+    return { kind: "Artwork", title: esc(a.title), big: `${fmt(a.w)} × ${fmt(a.h)} cm`, rows, note: "Drag it to move it · the blue corner dot resizes it" };
+  }
+  if (d.part) {
+    const p = d.part;
+    const side = (P.x - p.cx) * -Math.sin(p.ang) + (P.y - p.cy) * Math.cos(p.ang) >= 0 ? "A" : "B";
+    const s = partSurfaces(p).find(x => x.id.endsWith("_" + side));
+    const u = clampN((P.x - s.o[0]) * s.r[0] + (P.y - s.o[1]) * s.r[1], 0, p.len);
+    const rows = [["Thickness", cmT(p.t)]];
+    if (p.mobile) rows.push(["Feet", `${cmT(p.z0)} – panel top at ${cmT(p.z1)}`]);
+    rows.push(["Face", s.name], ["You clicked", plan ? `${cmT(u)} from its left end` : `${cmT(u)} from its left end, ${cmT(clampN(P.z, 0, p.z1))} high`],
+      ["Centre", `X ${cm(p.cx)} · Y ${cm(p.cy)} cm`], ["Angle", `${deg(p.ang)}°`],
+      ["Artworks", `${arts.filter(a => a.wall === s.id).length} on this face`]);
+    for (const [lvl, t] of p.issues || []) rows.push([lvl === "err" ? "⚠ Problem" : "Check", esc(t)]);
+    return { kind: p.mobile ? "Mobile wall" : "Drywall", title: `${p.id} · ${esc(p.short)}`, big: `${fmt(p.len)} × ${fmt(p.z1 - p.z0)} cm`, rows,
+             note: p.mobile || opts.dry ? "Drag it to move it · R rotates it" : "Fixed – tick “Let me move the drywalls” in the Walls tab to move it" };
+  }
+  const info = d.info;
+  if (info.type === "wall") {
+    const s = SURF[info.key], corner = cornerOf(s);
+    const u = clampN((P.x - s.o[0]) * s.r[0] + (P.y - s.o[1]) * s.r[1], 0, s.len), z = clampN(P.z, 0, CEIL);
+    const ops = [...OPENINGS[info.key]].sort((a, b) => a[1] - b[1]);
+    const op = !plan && ops.find(o => u >= o[1] - 0.02 && u <= o[2] + 0.02 && z <= o[4] + 0.01 && (o[0] === "door" || z >= o[3] - 0.01));
+    if (op) {
+      const [kind, u0, u1, z0, z1] = op;
+      if (kind === "door") return { kind: "Door", title: `${s.name} door`, big: `${fmt(u1 - u0)} × ${fmt(z1)} cm`,
+        rows: [["Opening", `${fmt(u0)} – ${cmT(u1)} from the ${corner}`], ["Keep clear", "1 m in front of it"]] };
+      return { kind: "Window", title: `${s.name} window`, big: `${fmt(u1 - u0)} × ${fmt(z1 - z0)} cm`,
+        rows: [["Opening", `${fmt(u0)} – ${cmT(u1)} from the ${corner}`], ["Niche starts", `${cmT(z0)} (radiator bench)`],
+               ["Glass starts", cmT(SILL)], ["Top of opening", cmT(z1)]] };
+    }
+    let prev = [0, `the ${corner}`], next = [s.len, `the ${DIR_WORD[dirLetter(s.r)]} corner`];
+    for (const o of ops) {
+      if (o[2] <= u && o[2] > prev[0]) prev = [o[2], `the ${o[0]}`];
+      if (o[1] >= u && o[1] < next[0]) next = [o[1], `the ${o[0]}`];
+    }
+    const rows = [["Height", `${cmT(CEIL)} to the ceiling`]];
+    if (s.z0 > 0) rows.push(["Hanging zone", `${fmt(s.z0)} – ${cmT(CEIL)} (bench below)`]);
+    rows.push(["You clicked", plan ? `${cmT(u)} from the ${corner}` : `${cmT(u)} from the ${corner}, ${cmT(z)} high`],
+      ["Free wall here", `${cmT(next[0] - prev[0])}`], ["Between", `${prev[1]} and ${next[1]}`],
+      ["Artworks", `${arts.filter(a => a.wall === info.key).length} on this wall`]);
+    return { kind: "Wall", title: s.name, big: `${fmt(s.len)} cm long`, rows, note: `Distances run from the ${corner}, the left end when you face this wall.` };
+  }
+  if (info.type === "pillar") return { kind: "Pillar", title: info.name, big: "80 × 80 cm",
+    rows: [["Height", `${cmT(CEIL)}, floor to ceiling`], ["West face", `${cmT(PILLAR_X0)} from the west wall`],
+           ["East face", `${cmT(W - PILLAR_X0 - PILLAR)} from the east wall`], ["Gap between pillars", cmT(PA_Y0 - PB_Y0 - PILLAR)],
+           ["Centre", `X ${cm(PX)} · Y ${cm(info.cy)} cm`]] };
+  if (info.type === "bench") return { kind: "Radiator bench", title: `${info.side === "west" ? "West" : "East"} radiator bench`,
+    big: `${fmt(BENCH_D)} deep × ${fmt(BENCH_H)} high`, rows: [["Length", `${cmT(L)}, the whole wall`]],
+    note: "Artworks on this wall have to start above 37 cm." };
+  if (info.type === "floor") {
+    const x = clampN(P.x, 0, W), y = clampN(P.y, 0, L);
+    return { kind: "Floor", title: "Where you clicked", big: `X ${cm(x)} · Y ${cm(y)} cm`,
+      rows: [["To the west wall", cmT(x)], ["To the east wall", cmT(W - x)], ["To the south wall", cmT(y)], ["To the north wall", cmT(L - y)],
+             ["Room", `${fmt(W)} × ${fmt(L)} cm · 178,95 m²`]] };
+  }
+  if (info.type === "ceiling") return { kind: "Ceiling", title: "Suspended ceiling", big: `${cmT(CEIL)} high`, rows: [] };
+  return { kind: "Scale figure", title: "Visitor", big: "170 cm tall", rows: [["Eye height", "about 160 cm"]] };
+}
+function showInfo(x, y) {
+  const hit = probe(x, y);
+  if (!hit) { hideInfo(); return; }
+  const d = describe(hit);
+  infoEl.innerHTML = `
+    <div class="info-head"><div><div class="info-kind">${d.kind}</div><h3>${d.title}</h3></div>
+      <button class="info-x" type="button" aria-label="Close">×</button></div>
+    <div class="big">${d.big}</div>
+    ${d.rows.length ? `<dl>${d.rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}</dl>` : ""}
+    ${d.note ? `<p>${d.note}</p>` : ""}`;
+  infoEl.querySelector(".info-x").addEventListener("click", hideInfo);
+  infoEl.hidden = false;
+  const ar = app.getBoundingClientRect(), pr = panel.getBoundingClientRect();
+  const w = infoEl.offsetWidth, h = infoEl.offsetHeight;
+  const narrow = matchMedia("(max-width:760px)").matches;
+  const maxR = narrow ? ar.width - 16 : pr.left - ar.left - 10;
+  const maxB = narrow && panel.dataset.collapsed !== "true" ? pr.top - ar.top - 10 : ar.height - 16;
+  let left = x - ar.left + 16, top = y - ar.top + 16;
+  if (left + w > maxR) left = x - ar.left - w - 16;
+  if (top + h > maxB) top = maxB - h;
+  infoEl.style.left = clampN(left, 16, Math.max(16, maxR - w)) + "px";
+  infoEl.style.top = Math.max(60, top) + "px";
+}
+function hideInfo() { infoEl.hidden = true; }
+let hoverT = null;
+function hoverTip(x, y) {
+  clearTimeout(hoverT);
+  hoverT = setTimeout(() => {
+    if (gesture || locked || listDrag) return;
+    const hit = probe(x, y);
+    if (!hit) { readout.hidden = true; return; }
+    const d = describe(hit);
+    showReadout(x, y, `${d.title.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"')} · ${d.big}`);
+  }, 350);
+}
+canvas.addEventListener("pointerleave", () => { clearTimeout(hoverT); if (!gesture) readout.hidden = true; });
+
+canvas.addEventListener("contextmenu", e => e.preventDefault());
+canvas.addEventListener("pointerdown", e => {
+  canvas.focus({ preventScroll: true });
+  clearTimeout(hoverT); readout.hidden = true;
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+  if (pointers.size === 2 && mode !== "walk") {
+    const [a, b] = [...pointers.values()];
+    gesture = { type: "pinch", d: Math.hypot(a.x - b.x, a.y - b.y), mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2 };
+    readout.hidden = true; return;
+  }
+  if (pointers.size > 1) return;
+  const base = { sx: e.clientX, sy: e.clientY, lx: e.clientX, ly: e.clientY, moved: false };
+  const h = (e.button === 0 && !locked) ? pick(e.clientX, e.clientY) : null;
+  if (h && h.kind === "handle") {
+    gesture = { type: "resize", a: selArt, ratio: selArt.w / selArt.h, ...base };
+    return;
+  }
+  if (h && h.kind === "art") {
+    const a = h.a; selectArt(a);
+    const hit = wallHit(e.clientX, e.clientY, a.wall);
+    gesture = { type: "art", a, du: hit ? hit.u - a.u : a.w / 2, dz: hit && hit.z !== null ? hit.z - a.zc : 0, ...base };
+    canvas.style.cursor = "grabbing";
+    return;
+  }
+  if (h && h.kind === "part") {
+    const p = h.p; selectPart(p);
+    const g = groundAt(e.clientX, e.clientY);
+    gesture = { type: "drag", p, ox: p.cx - (g ? g.x : p.cx), oy: p.cy - (g ? g.y : p.cy), ...base };
+    canvas.style.cursor = "grabbing";
+    return;
+  }
+  if (mode === "walk") {
+    if (e.pointerType === "mouse" && !locked) {
+      try { const r = canvas.requestPointerLock?.(); r && r.catch && r.catch(() => {}); } catch (_) {}
+    }
+    gesture = { type: "look", ...base }; return;
+  }
+  gesture = { type: mode === "plan" || e.button === 2 || e.button === 1 || e.shiftKey ? "pan" : "orbit", ...base };
+});
+canvas.addEventListener("pointermove", e => {
+  if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (!gesture) {
+    if (e.pointerType === "mouse" && !locked) {
+      const h = pick(e.clientX, e.clientY);
+      canvas.style.cursor = !h ? "" : h.kind === "handle" ? "nwse-resize" : "grab";
+      readout.hidden = true; hoverTip(e.clientX, e.clientY);
+    }
+    return;
+  }
+  if (gesture.type === "pinch") {
+    if (pointers.size < 2) return;
+    const [a, b] = [...pointers.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y), mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    zoom(gesture.d / Math.max(d, 1)); pan(mx - gesture.mx, my - gesture.my); hideInfo();
+    Object.assign(gesture, { d, mx, my });
+    return;
+  }
+  const dx = e.clientX - gesture.lx, dy = e.clientY - gesture.ly;
+  gesture.lx = e.clientX; gesture.ly = e.clientY;
+  if (!gesture.moved && Math.hypot(e.clientX - gesture.sx, e.clientY - gesture.sy) > 3) { gesture.moved = true; hideInfo(); }
+  if (!gesture.moved) return;
+  if (gesture.type === "drag") {
+    const g = groundAt(e.clientX, e.clientY); if (!g) return;
+    const p = gesture.p;
+    p.cx = Math.min(W, Math.max(0, snapV(g.x + gesture.ox, 0.05)));
+    p.cy = Math.min(L, Math.max(0, snapV(g.y + gesture.oy, 0.05)));
+    placePart(p); evaluate(); evaluateArts(); refreshRows();
+    showReadout(e.clientX, e.clientY, `${p.id}  X ${cm(p.cx)}  Y ${cm(p.cy)} cm`);
+  } else if (gesture.type === "art") {
+    const a = gesture.a, hit = wallHit(e.clientX, e.clientY);
+    if (!hit) return;
+    hangAt(a, hit, gesture.du, gesture.dz, mode === "plan");
+    evaluateArts(); updateArtCard(a);
+    showReadout(e.clientX, e.clientY, artPosText(a));
+  } else if (gesture.type === "resize") {
+    const a = gesture.a, hit = wallHit(e.clientX, e.clientY, a.wall);
+    if (!hit) return;
+    let w = Math.max(0.05, hit.u - a.u), h;
+    if (a.lock || hit.z === null) h = w / gesture.ratio;
+    else h = Math.max(0.05, 2 * (a.zc - hit.z));
+    if (opts.snap) { w = Math.round(w * 200) / 200; h = Math.round(h * 200) / 200; }
+    a.w = w; a.h = h; a.sizeGuessed = false;
+    placeArt(a); evaluateArts(); updateArtCard(a);
+    showReadout(e.clientX, e.clientY, `${fmt(a.w)} × ${fmt(a.h)} cm`);
+  } else if (gesture.type === "orbit") {
+    orbit.theta -= dx * 0.006;
+    orbit.phi = Math.min(1.5, Math.max(0.08, orbit.phi - dy * 0.006));
+  } else if (gesture.type === "pan") {
+    pan(dx, dy);
+  } else if (gesture.type === "look" && !locked) {
+    look(dx * 1.6, dy * 1.6);
+  }
+});
+function endPointer(e) {
+  pointers.delete(e.pointerId);
+  if (!gesture) return;
+  if (gesture.type === "pinch") { if (pointers.size === 0) gesture = null; return; }
+  if (gesture.type === "drag" && gesture.moved) { save(); saveArts(); }
+  if ((gesture.type === "art" || gesture.type === "resize") && gesture.moved) { saveArts(); refreshArtList(); }
+  if ((gesture.type === "orbit" || gesture.type === "pan") && !gesture.moved) { selectPart(null); selectArt(null); }
+  const g = gesture;
+  gesture = null; readout.hidden = true; canvas.style.cursor = "";
+  if (g.type === "look" && locked) { const r = canvas.getBoundingClientRect(); if (!g.moved) showInfo(r.left + r.width / 2, r.top + r.height / 2); }
+  else if (!g.moved || g.type === "art" || g.type === "drag" || g.type === "resize") showInfo(e.clientX, e.clientY);
+}
+canvas.addEventListener("pointerup", endPointer);
+canvas.addEventListener("pointercancel", endPointer);
+canvas.addEventListener("wheel", e => {
+  e.preventDefault(); hideInfo();
+  if (mode === "walk") return;
+  zoom(Math.exp(e.deltaY * (e.ctrlKey ? 0.01 : 0.0012)));
+}, { passive: false });
+
+function zoom(f) {
+  if (mode === "plan") plan.h = Math.min(22, Math.max(1.5, plan.h * f));
+  else if (mode === "orbit") orbit.r = Math.min(45, Math.max(1.5, orbit.r * f));
+}
+function pan(dx, dy) {
+  if (mode === "plan") {
+    const k = (2 * plan.h) / Math.max(canvas.clientHeight, 1);
+    plan.cx -= dx * k; plan.cy += dy * k;
+  } else if (mode === "orbit") {
+    const k = orbit.r * 0.0016, t = orbit.theta;
+    orbit.target.x += -Math.cos(t) * dx * k - Math.sin(t) * dy * k;
+    orbit.target.z += Math.sin(t) * dx * k - Math.cos(t) * dy * k;
+  }
+}
+function look(dx, dy) {
+  walk.yaw -= dx * 0.0025;
+  walk.pitch = Math.min(1.35, Math.max(-1.35, walk.pitch - dy * 0.0025));
+}
+document.addEventListener("pointerlockchange", () => { locked = document.pointerLockElement === canvas; });
+document.addEventListener("mousemove", e => { if (locked && mode === "walk") look(e.movementX, e.movementY); });
+
+// keyboard
+const keys = new Set();
+const typing = e => /INPUT|SELECT|TEXTAREA/.test(e.target.tagName);
+addEventListener("keydown", e => {
+  if (typing(e) || e.metaKey || e.ctrlKey) return;
+  const k = e.key.toLowerCase();
+  if (k === "escape" && !infoEl.hidden) { hideInfo(); return; }
+  if (selArt && (mode !== "walk" || !locked)) {
+    const a = selArt, st = e.shiftKey ? 0.1 : 0.01;
+    const mv = { arrowleft: [-st, 0], arrowright: [st, 0], arrowup: [0, st], arrowdown: [0, -st] }[k];
+    if (mv && a.wall) { e.preventDefault(); a.u += mv[0]; a.zc += mv[1]; commitArt(a); return; }
+    if (k === "+" || k === "=" || k === "-" || k === "_") {
+      e.preventDefault(); const f = (k === "+" || k === "=") ? 1.05 : 1 / 1.05;
+      a.w *= f; a.h *= f; a.sizeGuessed = false; commitArt(a); return;
+    }
+    if ((k === "delete" || k === "backspace") && a.wall) { e.preventDefault(); a.wall = null; commitArt(a, true); say(`“${a.title}” taken down – it's back in the list`); return; }
+    if (k === "escape") { selectArt(null); return; }
+  }
+  if (mode === "walk") {
+    if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"].includes(k)) { keys.add(k); if (k.startsWith("arrow")) e.preventDefault(); }
+    return;
+  }
+  if (!selPart) return;
+  const step = e.shiftKey ? 0.5 : 0.05;
+  const moves = { arrowleft: [-step, 0], arrowright: [step, 0], arrowup: [0, step], arrowdown: [0, -step] };
+  if (moves[k]) { e.preventDefault(); movePart(selPart, selPart.cx + moves[k][0], selPart.cy + moves[k][1]); }
+  else if (k === "r") rotatePart(selPart, e.shiftKey ? -15 : 15);
+  else if (k === "escape") selectPart(null);
+});
+addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
+addEventListener("blur", () => keys.clear());
+const pad = { f: 0, b: 0, l: 0, r: 0 };
+for (const b of document.querySelectorAll("#walkpad button")) {
+  const k = b.dataset.k;
+  b.addEventListener("pointerdown", e => { e.preventDefault(); pad[k] = 1; try { b.setPointerCapture(e.pointerId); } catch (_) {} });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) b.addEventListener(ev, () => { pad[k] = 0; });
+}
+
+function movePart(p, x, y) {
+  p.cx = Math.min(W, Math.max(0, x)); p.cy = Math.min(L, Math.max(0, y));
+  placePart(p); evaluate(); evaluateArts(); refreshRows(); refreshArtList(); save(); saveArts();
+}
+function rotatePart(p, deg) {
+  let a = normAng(p.ang + deg * Math.PI / 180);
+  if (opts.snap) a = normAng(Math.round(a / (Math.PI / 12)) * (Math.PI / 12));
+  p.ang = a; placePart(p); evaluate(); evaluateArts(); refreshRows(); refreshArtList(); save(); saveArts();
+}
+
+function pushOut(pos, b, r) {
+  const c = Math.cos(b.ang), s = Math.sin(b.ang);
+  const dx = pos.x - b.cx, dy = pos.y - b.cy;
+  let lx = dx * c + dy * s, ly = -dx * s + dy * c;
+  const qx = Math.max(-b.hx, Math.min(b.hx, lx)), qy = Math.max(-b.hy, Math.min(b.hy, ly));
+  let ex = lx - qx, ey = ly - qy, d = Math.hypot(ex, ey);
+  if (d >= r) return;
+  if (d > 1e-6) { lx = qx + ex / d * r; ly = qy + ey / d * r; }
+  else if (b.hx - Math.abs(lx) < b.hy - Math.abs(ly)) lx = Math.sign(lx || 1) * (b.hx + r);
+  else ly = Math.sign(ly || 1) * (b.hy + r);
+  pos.x = b.cx + lx * c - ly * s; pos.y = b.cy + lx * s + ly * c;
+}
+function stepWalk(dt) {
+  let f = 0, s = 0;
+  if (keys.has("w") || (keys.has("arrowup") && !selArt) || pad.f) f += 1;
+  if (keys.has("s") || (keys.has("arrowdown") && !selArt) || pad.b) f -= 1;
+  if (keys.has("d") || pad.r) s += 1;
+  if (keys.has("a") || pad.l) s -= 1;
+  if (keys.has("arrowleft") && !selArt) walk.yaw += 1.8 * dt;
+  if (keys.has("arrowright") && !selArt) walk.yaw -= 1.8 * dt;
+  if (!f && !s) return;
+  const speed = (keys.has("shift") ? 3.2 : 1.4) * dt / Math.hypot(f, s);
+  const fx = -Math.sin(walk.yaw), fy = Math.cos(walk.yaw), rx = Math.cos(walk.yaw), ry = Math.sin(walk.yaw);
+  walk.x += (fx * f + rx * s) * speed; walk.y += (fy * f + ry * s) * speed;
+  const R = 0.25, solids = [...OBSTACLES.filter(o => o.level === "err"), ...parts.map(p => obbOf(p))];
+  for (let i = 0; i < 3; i++) for (const b of solids) pushOut(walk, b, R);
+  walk.x = Math.min(W - R, Math.max(R, walk.x)); walk.y = Math.min(L - R, Math.max(R, walk.y));
+}
+
+// ---------------------------------------------------------------------------
+// Panel: tabs, walls, artworks
+// ---------------------------------------------------------------------------
+const cm = v => (v * 100).toFixed(0);
+const fmt = v => { const x = Math.round(v * 1000) / 10; return String(x).replace(".", ","); };
+const deg = a => Math.round(normAng(a) * 180 / Math.PI) % 360;
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const surfName = id => { const s = id && surfaces()[id]; return s ? s.name : "Not hung"; };
+const artPosText = a => a.wall ? `${surfName(a.wall)} · left edge ${fmt(a.u)} cm · centre ${fmt(a.zc)} cm` : "Not hung";
+
+function setTab(t) {
+  ui.tab = t; saveUi();
+  document.getElementById("t-art").setAttribute("aria-selected", String(t === "art"));
+  document.getElementById("t-walls").setAttribute("aria-selected", String(t === "walls"));
+  document.getElementById("p-art").hidden = t !== "art";
+  document.getElementById("p-walls").hidden = t !== "walls";
+}
+document.getElementById("t-art").addEventListener("click", () => setTab("art"));
+document.getElementById("t-walls").addEventListener("click", () => setTab("walls"));
+
+// walls tab
+const wallsEl = document.getElementById("walls");
+const rows = {};
+for (const p of parts) {
+  const el = document.createElement("div");
+  el.className = "wall";
+  el.innerHTML = `
+    <button class="wall-head" type="button">
+      <span class="swatch ${p.mobile ? "mob" : "dry"}"></span>
+      <span class="wall-name">${p.short}<small>${p.id} · ${p.label} · ${cm(p.len)} cm</small></span>
+      <span class="chip"></span>
+    </button>
+    <ul class="issues"></ul>
+    <div class="fields">
+      <label>X cm<input id="x-${p.id}" inputmode="numeric" type="number" step="5"></label>
+      <label>Y cm<input id="y-${p.id}" inputmode="numeric" type="number" step="5"></label>
+      <label>Angle °<input id="a-${p.id}" inputmode="numeric" type="number" step="15"></label>
+    </div>
+    <div class="rot">
+      <button type="button" data-r="-15" aria-label="Rotate 15 degrees clockwise">↻ 15°</button>
+      <button type="button" data-r="15" aria-label="Rotate 15 degrees anticlockwise">↺ 15°</button>
+      <button type="button" data-r="90" aria-label="Rotate 90 degrees">90°</button>
+    </div>`;
+  el.querySelector(".wall-head").addEventListener("click", () => {
+    selectPart(selPart === p ? null : p);
+    if (selPart === p && mode !== "walk") { orbit.target.copy(toV(p.cx, p.cy, 0.8)); plan.cx = p.cx; plan.cy = p.cy; }
+  });
+  const [ix, iy, ia] = el.querySelectorAll("input");
+  const commit = () => {
+    const x = parseFloat(ix.value), y = parseFloat(iy.value), a = parseFloat(ia.value);
+    if (isFinite(x) && isFinite(y)) movePart(p, x / 100, y / 100);
+    if (isFinite(a)) { p.ang = normAng(a * Math.PI / 180); placePart(p); evaluate(); evaluateArts(); refreshRows(); refreshArtList(); save(); }
+  };
+  for (const i of [ix, iy, ia]) { i.addEventListener("change", commit); i.addEventListener("focus", () => selectPart(p)); }
+  for (const b of el.querySelectorAll(".rot button")) b.addEventListener("click", () => { selectPart(p); rotatePart(p, +b.dataset.r); });
+  wallsEl.appendChild(el);
+  rows[p.id] = { el, ix, iy, ia, chip: el.querySelector(".chip"), issues: el.querySelector(".issues"), fields: el.querySelector(".fields"), rot: el.querySelector(".rot") };
+}
+function refreshRows() {
+  for (const p of parts) {
+    const r = rows[p.id], movable = p.mobile || opts.dry;
+    for (const [inp, v] of [[r.ix, cm(p.cx)], [r.iy, cm(p.cy)], [r.ia, deg(p.ang)]])
+      if (document.activeElement !== inp) inp.value = v;
+    r.fields.hidden = r.rot.hidden = !movable;
+    const lvl = p.level;
+    r.chip.className = "chip " + (movable ? lvl : (lvl === "ok" ? "fixed" : lvl));
+    r.chip.textContent = lvl === "err" ? "clash" : lvl === "warn" ? "check" : movable ? "ok" : "fixed";
+    r.issues.innerHTML = p.issues.map(([l, t]) => `<li class="${l}">${esc(t)}</li>`).join("");
+    r.el.dataset.selected = String(selPart === p);
+  }
+}
+function selectPart(p) {
+  selPart = p;
+  if (p) { selArt = null; handle.visible = false; for (const a of arts) if (a.obj) a.obj.edges.visible = false; refreshArtList(); }
+  for (const q of parts) q.obj.edges.visible = q === p;
+  refreshRows();
+  if (p && rows[p.id] && !gesture) { setTab("walls"); rows[p.id].el.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+}
+function selectArt(a) {
+  const changed = selArt !== a;
+  selArt = a;
+  if (a) { selPart = null; for (const q of parts) q.obj.edges.visible = false; refreshRows(); setTab("art"); }
+  for (const x of arts) if (x.obj) x.obj.edges.visible = x === a;
+  placeHandle();
+  if (changed) refreshArtList();
+  if (a) { const el = artList.querySelector(`[data-id="${a.id}"]`); el && el.scrollIntoView({ block: "nearest", behavior: gesture ? "auto" : "smooth" }); }
+}
+
+// artworks tab
+const artList = document.getElementById("artList");
+function artChip(a) {
+  if (a.level === "err") return `<span class="chip err">clash</span>`;
+  if (!a.wall) return `<span class="chip idle">not hung</span>` + (a.sizeGuessed ? `<span class="chip warn">size?</span>` : "");
+  return `<span class="chip ${a.level === "warn" ? "warn" : "hung"}">${esc(a.wall.includes("_") ? a.wall.split("_")[0] + " " + surfaces()[a.wall]?.letter : a.wall)}</span>` + (a.sizeGuessed ? `<span class="chip warn">size?</span>` : "");
+}
+function artMeta(a) { return `${fmt(a.w)} × ${fmt(a.h)} cm` + (a.artist ? ` · ${esc(a.artist)}` : ""); }
+function thumbHtml(a) { return a.url ? `<img src="${a.url}" alt="">` : `<span class="ph">no<br>image</span>`; }
+function wallOptions(sel) {
+  const S = surfaces();
+  return `<option value="">Not hung (list only)</option>` + Object.values(S).map(s => `<option value="${s.id}"${s.id === sel ? " selected" : ""}>${esc(s.name)} · ${cm(s.len)} cm</option>`).join("");
+}
+function refreshArtList() {
+  evaluateArts();
+  const counts = { all: arts.length, todo: arts.filter(a => !a.wall).length, hung: arts.filter(a => a.wall).length, issue: arts.filter(a => a.level !== "ok").length };
+  document.getElementById("artCount").textContent = arts.length;
+  for (const f of ["all", "todo", "hung", "issue"]) {
+    const b = document.getElementById("f-" + f);
+    b.setAttribute("aria-pressed", String(ui.filter === f));
+    b.textContent = { all: "All", todo: "Not hung", hung: "Hung", issue: "Needs a look" }[f] + ` ${counts[f]}`;
+  }
+  const shown = arts.filter(a => ui.filter === "all" || a === selArt || (ui.filter === "todo" ? !a.wall : ui.filter === "hung" ? !!a.wall : a.level !== "ok"));
+  if (!arts.length) {
+    artList.innerHTML = `<div class="empty">No artworks yet. Add pictures or a list above, or <button class="btn link" id="sampleBtn">load the example list</button> to try it out.</div>`;
+    document.getElementById("sampleBtn").addEventListener("click", () => { applyRows(parseDelimited(SAMPLE_CSV), "Example list"); });
+    return;
+  }
+  if (!shown.length) { artList.innerHTML = `<div class="empty">Nothing in this filter.</div>`; return; }
+  const active = document.activeElement && artList.contains(document.activeElement) ? document.activeElement.id : null;
+  artList.innerHTML = shown.map(a => `
+    <div class="art" data-id="${a.id}" data-selected="${a === selArt}">
+      <div class="art-row">
+        <div class="grip" title="Drag onto a wall" aria-label="Drag ${esc(a.title)} onto a wall">${thumbHtml(a)}</div>
+        <button class="art-main" type="button">
+          <span class="art-title">${esc(a.title)}</span>
+          <span class="art-meta">${artMeta(a)}</span>
+          <span class="art-chips">${artChip(a)}</span>
+        </button>
+      </div>
+      ${a === selArt ? artEditor(a) : ""}
+    </div>`).join("");
+  if (active) { const el = document.getElementById(active); el && el.focus(); }
+}
+function artEditor(a) {
+  const id = a.id;
+  return `<div class="art-edit">
+    <ul class="issues">${a.issues.map(([l, t]) => `<li class="${l}">${esc(t)}</li>`).join("")}</ul>
+    <div class="fields two">
+      <label class="span2">Title<input type="text" id="e-title-${id}" value="${esc(a.title)}"></label>
+      <label>Artist<input type="text" id="e-artist-${id}" value="${esc(a.artist)}"></label>
+      <label>Inventory no.<input type="text" id="e-inv-${id}" value="${esc(a.inv)}"></label>
+    </div>
+    <div class="fields">
+      <label>Width cm<input type="number" step="0.5" min="1" id="e-w-${id}" value="${fmt(a.w).replace(",", ".")}"></label>
+      <label>Height cm<input type="number" step="0.5" min="1" id="e-h-${id}" value="${fmt(a.h).replace(",", ".")}"></label>
+      <label>Depth cm<input type="number" step="0.5" min="0.5" id="e-d-${id}" value="${fmt(a.d).replace(",", ".")}"></label>
+    </div>
+    <label class="lockrow"><input type="checkbox" id="e-lock-${id}"${a.lock ? " checked" : ""}> Keep proportions when resizing${a.hasImg ? " (picture is " + (a.aspect >= 1 ? "landscape" : "portrait") + ")" : ""}</label>
+    <div class="fields">
+      <label class="span3">Wall<select id="e-wall-${id}">${wallOptions(a.wall)}</select></label>
+      <label class="span2">Left edge from wall's left end, cm<input type="number" step="1" id="e-u-${id}" value="${fmt(a.u).replace(",", ".")}"${a.wall ? "" : " disabled"}></label>
+      <label>Centre height cm<input type="number" step="1" id="e-zc-${id}" value="${fmt(a.zc).replace(",", ".")}"></label>
+    </div>
+    <label class="field">Note<input type="text" id="e-note-${id}" value="${esc(a.note)}"></label>
+    <div class="actions">
+      <button class="btn" type="button" data-act="img">${a.hasImg ? "Replace picture" : "Add picture"}</button>
+      ${a.wall ? `<button class="btn" type="button" data-act="down">Take down</button>` : `<button class="btn" type="button" data-act="hang">Hang in view</button>`}
+      <button class="btn danger" type="button" data-act="del">Delete</button>
+    </div>
+  </div>`;
+}
+function updateArtCard(a) {
+  const el = artList.querySelector(`[data-id="${a.id}"]`);
+  if (!el) return;
+  el.querySelector(".art-meta").innerHTML = artMeta(a);
+  el.querySelector(".art-chips").innerHTML = artChip(a);
+  el.querySelector(".grip").innerHTML = thumbHtml(a);
+  const ed = el.querySelector(".art-edit");
+  if (!ed) return;
+  ed.querySelector(".issues").innerHTML = a.issues.map(([l, t]) => `<li class="${l}">${esc(t)}</li>`).join("");
+  const set = (k, v) => { const i = document.getElementById(`e-${k}-${a.id}`); if (i && document.activeElement !== i) i.value = v; };
+  set("w", fmt(a.w).replace(",", ".")); set("h", fmt(a.h).replace(",", ".")); set("u", fmt(a.u).replace(",", ".")); set("zc", fmt(a.zc).replace(",", "."));
+  const ws = document.getElementById(`e-wall-${a.id}`); if (ws && document.activeElement !== ws) ws.value = a.wall || "";
+}
+function commitArt(a, relist = false) {
+  placeArt(a); evaluateArts(); saveArts();
+  if (relist) refreshArtList(); else updateArtCard(a);
+  if (a === selArt) placeHandle();
+}
+// edits inside the list
+artList.addEventListener("click", e => {
+  const card = e.target.closest(".art"); if (!card) return;
+  const a = arts.find(x => x.id === card.dataset.id); if (!a) return;
+  if (e.target.closest(".art-main")) { selectArt(selArt === a ? null : a); if (selArt === a && a.wall) focusArt(a); return; }
+  const act = e.target.closest("[data-act]")?.dataset.act;
+  if (act === "img") { replaceTarget = a; document.getElementById("replaceInput").click(); }
+  else if (act === "down") { a.wall = null; commitArt(a, true); }
+  else if (act === "hang") { hangInView(a); }
+  else if (act === "del") {
+    const b = e.target.closest("[data-act]");
+    if (b.dataset.armed) { deleteArt(a); }
+    else { b.dataset.armed = "1"; b.textContent = "Click again to delete"; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "Delete"; } }, 3000); }
+  }
+});
+artList.addEventListener("change", e => {
+  const m = e.target.id && e.target.id.match(/^e-(\w+)-(.+)$/); if (!m) return;
+  const a = arts.find(x => x.id === m[2]); if (!a) return;
+  const f = m[1], v = e.target.value;
+  if (f === "title") { a.title = v.trim() || "Untitled"; if (!a.hasImg) setArtTexture(a); commitArt(a, true); return; }
+  if (f === "artist" || f === "inv" || f === "note") { a[f] = v.trim(); commitArt(a); return; }
+  if (f === "lock") { a.lock = e.target.checked; if (a.lock && a.hasImg) { a.h = a.w / a.aspect; } commitArt(a); return; }
+  if (f === "wall") {
+    const S = surfaces();
+    if (!v) a.wall = null;
+    else { const s = S[v]; a.wall = v; if (a.u + a.w > s.len || a.u < 0) a.u = Math.max(0, (s.len - a.w) / 2); if (!a.zc) a.zc = opts.centre / 100; }
+    commitArt(a, true); if (a.wall) focusArt(a); return;
+  }
+  const n = num(v); if (!isFinite(n)) return;
+  if (f === "w") { const r = a.w / a.h; a.w = Math.max(0.01, n / 100); if (a.lock) a.h = a.w / r; a.sizeGuessed = false; }
+  if (f === "h") { const r = a.w / a.h; a.h = Math.max(0.01, n / 100); if (a.lock) a.w = a.h * r; a.sizeGuessed = false; }
+  if (f === "d") a.d = Math.max(0.005, n / 100);
+  if (f === "u") a.u = n / 100;
+  if (f === "zc") a.zc = n / 100;
+  if (!a.hasImg && (f === "w" || f === "h")) setArtTexture(a);
+  commitArt(a);
+});
+function deleteArt(a) {
+  removeArtObj(a); arts.splice(arts.indexOf(a), 1);
+  if (a.url) URL.revokeObjectURL(a.url);
+  idb.del(a.id);
+  if (selArt === a) { selArt = null; handle.visible = false; }
+  saveArts(); refreshArtList(); say(`“${a.title}” deleted`);
+}
+function focusArt(a) {
+  const s = surfaces()[a.wall]; if (!s) return;
+  const uc = a.u + a.w / 2, px = s.o[0] + s.r[0] * uc, py = s.o[1] + s.r[1] * uc;
+  if (mode === "plan") { plan.cx = px; plan.cy = py; }
+  else if (mode === "orbit") {
+    orbit.target.copy(toV(px, py, a.zc));
+    orbit.theta = Math.atan2(s.n[0], -s.n[1]); orbit.phi = 1.3; orbit.r = Math.max(3.5, a.w * 4);
+  } else {
+    const back = Math.max(2, a.w * 2.2);
+    Object.assign(walk, { x: Math.min(W - 0.3, Math.max(0.3, px + s.n[0] * back)), y: Math.min(L - 0.3, Math.max(0.3, py + s.n[1] * back)),
+                         yaw: Math.atan2(s.n[0], -s.n[1]) + Math.PI, pitch: 0 });
+  }
+}
+function hangInView(a) {
+  const r = canvas.getBoundingClientRect();
+  let hit = null;
+  for (const [fx, fy] of [[0.5, 0.5], [0.5, 0.4], [0.35, 0.5], [0.65, 0.5], [0.5, 0.6]]) {
+    hit = wallHit(r.left + r.width * fx, r.top + r.height * fy); if (hit) break;
+  }
+  if (!hit) { const S = surfaces(); hit = { s: S.N, u: 1, z: null }; }
+  a.zc = opts.centre / 100;
+  hangAt(a, hit, a.w / 2, 0, true);
+  commitArt(a, true); selectArt(a);
+  say(`Hung on ${hit.s.name} – drag it in the view to fine-tune`);
+}
+let replaceTarget = null;
+document.getElementById("replaceInput").addEventListener("change", async e => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f || !replaceTarget) return;
+  try {
+    const { blob } = await shrink(f);
+    const a = replaceTarget; a.image = f.name;
+    const oldRatio = a.w / a.h;
+    await attachBlob(a, blob);
+    if (a.sizeGuessed || a.lock) { a.h = a.w / a.aspect; a.lock = true; }
+    if (Math.abs(oldRatio - a.aspect) > 0.03 && !a.sizeGuessed) say("The new picture has different proportions from the size you set – check the size");
+    commitArt(a, true);
+  } catch (_) { say(`Couldn't read ${f.name} – try saving it as PNG or JPG`); }
+});
+
+// dragging from the list onto a wall
+const ghost = document.getElementById("ghost");
+let listDrag = null;
+artList.addEventListener("pointerdown", e => {
+  const grip = e.target.closest(".grip"); if (!grip || e.button !== 0) return;
+  const card = grip.closest(".art"), a = arts.find(x => x.id === card.dataset.id); if (!a) return;
+  e.preventDefault();
+  try { grip.setPointerCapture(e.pointerId); } catch (_) {}
+  listDrag = { a, id: e.pointerId, sx: e.clientX, sy: e.clientY, on: false,
+               prev: { wall: a.wall, u: a.u, zc: a.zc }, grip };
+});
+addEventListener("pointermove", e => {
+  if (!listDrag || e.pointerId !== listDrag.id) return;
+  const d = listDrag, a = d.a;
+  if (!d.on && Math.hypot(e.clientX - d.sx, e.clientY - d.sy) < 6) return;
+  if (!d.on) {
+    d.on = true; ghost.innerHTML = thumbHtml(a); ghost.hidden = false;
+    if (matchMedia("(max-width:760px)").matches) { panel.dataset.collapsed = "true"; app.dataset.sheet = "closed"; sheetToggle.textContent = "Show"; }
+  }
+  const r = app.getBoundingClientRect();
+  ghost.style.left = (e.clientX - r.left) + "px"; ghost.style.top = (e.clientY - r.top) + "px";
+  const over = document.elementFromPoint(e.clientX, e.clientY) === canvas;
+  const hit = over && wallHit(e.clientX, e.clientY);
+  if (hit) {
+    const keepZ = !!d.prev.wall;
+    if (!keepZ) a.zc = opts.centre / 100;
+    hangAt(a, hit, a.w / 2, 0, true);
+    evaluateArts();
+    ghost.hidden = true; d.hit = true;
+    showReadout(e.clientX, e.clientY, artPosText(a));
+  } else {
+    if (d.hit) { Object.assign(a, d.prev); placeArt(a); d.hit = false; }
+    ghost.hidden = false; readout.hidden = true;
+  }
+});
+function endListDrag(e) {
+  if (!listDrag || e.pointerId !== listDrag.id) return;
+  const d = listDrag; listDrag = null;
+  ghost.hidden = true; readout.hidden = true;
+  if (!d.on) { selectArt(selArt === d.a ? null : d.a); return; }
+  if (d.hit) { commitArt(d.a, true); selectArt(d.a); say(`“${d.a.title}” hung on ${surfName(d.a.wall)}`); }
+  else { Object.assign(d.a, d.prev); placeArt(d.a); }
+}
+addEventListener("pointerup", endListDrag);
+addEventListener("pointercancel", endListDrag);
+
+// file pickers + page-wide drop
+document.getElementById("addImgBtn").addEventListener("click", () => document.getElementById("imgInput").click());
+document.getElementById("addSheetBtn").addEventListener("click", () => document.getElementById("sheetInput").click());
+document.getElementById("imgInput").addEventListener("change", e => { const f = [...e.target.files]; e.target.value = ""; importFiles(f); });
+document.getElementById("sheetInput").addEventListener("change", e => { const f = [...e.target.files]; e.target.value = ""; importFiles(f); });
+const dropcover = document.getElementById("dropcover");
+let dragDepth = 0;
+const hasFiles = e => e.dataTransfer && [...(e.dataTransfer.types || [])].includes("Files");
+addEventListener("dragenter", e => { if (!hasFiles(e)) return; e.preventDefault(); dragDepth++; dropcover.hidden = false; });
+addEventListener("dragleave", e => { if (!hasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) dropcover.hidden = true; });
+addEventListener("dragover", e => {
+  if (!hasFiles(e)) return; e.preventDefault();
+  const over = document.elementFromPoint(e.clientX, e.clientY);
+  const hit = (over === canvas || over === dropcover) && wallHit(e.clientX, e.clientY);
+  dropcover.querySelector("span").textContent = hit ? `Drop one picture to hang it on ${hit.s.name}` : "Drop to add to the artwork list";
+});
+addEventListener("drop", e => {
+  if (!hasFiles(e)) return; e.preventDefault(); dragDepth = 0; dropcover.hidden = true;
+  const hit = wallHit(e.clientX, e.clientY);
+  importFiles(e.dataTransfer.files, hit);
+});
+
+// filters + options
+for (const f of ["all", "todo", "hung", "issue"]) document.getElementById("f-" + f).addEventListener("click", () => { ui.filter = f; saveUi(); refreshArtList(); });
+const optCentre = document.getElementById("optCentre"), optSlide = document.getElementById("optSlide");
+optCentre.value = opts.centre; optSlide.checked = opts.slide;
+optCentre.addEventListener("change", () => { const v = num(optCentre.value); if (isFinite(v)) { opts.centre = v; save(); } });
+optSlide.addEventListener("change", () => { opts.slide = optSlide.checked; save(); });
+
+// copy helpers
+const toast = document.getElementById("toast");
+let toastT;
+function say(msg) { toast.textContent = msg; toast.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => toast.hidden = true, 3200); }
+function copyText(text, out, okMsg) {
+  const fallback = () => { out.value = text; out.hidden = false; out.focus(); out.select(); say("Select the text below and copy it"); };
+  try { navigator.clipboard.writeText(text).then(() => { out.hidden = true; say(okMsg); }, fallback); } catch (_) { fallback(); }
+}
+document.getElementById("copyBtn").addEventListener("click", () => {
+  const lines = ["Kiállítótér 6 (E-102) – wall layout",
+    "Centre point in cm from the west wall (X) and the south wall (Y); 0° = west–east, 90° = south–north", ""];
+  for (const p of parts) {
+    lines.push(`${p.id.padEnd(6)} ${p.short.padEnd(32)} X ${cm(p.cx).padStart(5)}  Y ${cm(p.cy).padStart(5)}  ${String(deg(p.ang)).padStart(3)}°` +
+      (p.issues.length ? `  ! ${p.issues.map(i => i[1]).join("; ")}` : ""));
+  }
+  copyText(lines.join("\n"), document.getElementById("copyOut"), "Wall positions copied");
+});
+document.getElementById("copyArtBtn").addEventListener("click", () => {
+  if (!arts.length) { say("The list is empty"); return; }
+  const S = surfaces(), n = v => fmt(v);
+  const head = ["title", "artist", "inventory", "width_cm", "height_cm", "depth_cm", "image", "wall", "offset_cm", "centre_cm", "note", "wall_name", "bottom_cm", "top_cm", "warnings"];
+  const clean = v => String(v ?? "").replace(/[\t\r\n]+/g, " ");
+  const lines = [head.join("\t")];
+  const sorted = [...arts].sort((a, b) => (a.wall || "~").localeCompare(b.wall || "~") || a.u - b.u);
+  for (const a of sorted) {
+    const s = a.wall && S[a.wall];
+    lines.push([a.title, a.artist, a.inv, n(a.w), n(a.h), n(a.d), a.image, s ? exportWallId(s) : "", s ? n(a.u) : "", n(a.zc), a.note,
+                s ? s.name : "not hung", s ? n(a.zc - a.h / 2) : "", s ? n(a.zc + a.h / 2) : "", a.issues.map(i => i[1]).join("; ")].map(clean).join("\t"));
+  }
+  copyText(lines.join("\n"), document.getElementById("copyArtOut"), `Hanging list copied (${arts.length} rows) – paste it into Excel`);
+});
+const clearBtn = document.getElementById("clearArtBtn");
+let clearArmed = null;
+clearBtn.addEventListener("click", () => {
+  if (!arts.length) return;
+  if (!clearArmed) { clearBtn.textContent = `Click again to remove all ${arts.length}`; clearArmed = setTimeout(() => { clearArmed = null; clearBtn.textContent = "Remove all artworks"; }, 3000); return; }
+  clearTimeout(clearArmed); clearArmed = null; clearBtn.textContent = "Remove all artworks";
+  for (const a of [...arts]) { removeArtObj(a); if (a.url) URL.revokeObjectURL(a.url); }
+  arts = []; selArt = null; handle.visible = false; idb.clear(); saveArts(); refreshArtList(); say("All artworks removed");
+});
+const resetBtn = document.getElementById("resetBtn");
+let resetArmed = null;
+resetBtn.addEventListener("click", () => {
+  if (!resetArmed) { resetBtn.textContent = "Click again to reset"; resetArmed = setTimeout(() => { resetArmed = null; resetBtn.textContent = "Reset walls to drawing"; }, 3000); return; }
+  clearTimeout(resetArmed); resetArmed = null; resetBtn.textContent = "Reset walls to drawing";
+  for (const p of parts) { Object.assign(p, DEFAULTS[p.id]); placePart(p); }
+  evaluate(); evaluateArts(); refreshRows(); refreshArtList(); save(); say("Walls are back where the drawing puts them");
+});
+const optSnap = document.getElementById("optSnap"), optDry = document.getElementById("optDry"), optLabels = document.getElementById("optLabels");
+optSnap.checked = opts.snap; optDry.checked = opts.dry; optLabels.checked = opts.labels;
+optSnap.addEventListener("change", () => { opts.snap = optSnap.checked; save(); });
+optDry.addEventListener("change", () => { opts.dry = optDry.checked; if (!opts.dry && selPart && !selPart.mobile) selectPart(null); refreshRows(); save(); });
+optLabels.addEventListener("change", () => {
+  opts.labels = optLabels.checked; save();
+  for (const p of parts) p.obj.sprite.visible = mode !== "walk" && opts.labels;
+  floorLabels.visible = opts.labels;
+});
+floorLabels.visible = opts.labels;
+for (const p of parts) p.obj.sprite.visible = opts.labels;
+
+const panel = document.getElementById("panel"), sheetToggle = document.getElementById("sheetToggle");
+sheetToggle.addEventListener("click", () => {
+  const open = panel.dataset.collapsed === "true";
+  panel.dataset.collapsed = String(!open); app.dataset.sheet = open ? "open" : "closed";
+  sheetToggle.textContent = open ? "Hide" : "Show"; sheetToggle.setAttribute("aria-expanded", String(open));
+});
+
+for (const id of ["orbit", "plan", "walk"]) document.getElementById("v-" + id).addEventListener("click", () => setMode(id));
+document.getElementById("walkFrom").addEventListener("change", e => { startWalk(e.target.value); canvas.focus(); });
+
+function refreshAll() { evaluate(); evaluateArts(); refreshRows(); refreshArtList(); }
+
+// ---------------------------------------------------------------------------
+// Theme + render loop
+// ---------------------------------------------------------------------------
+function syncTheme() {
+  const cs = getComputedStyle(document.documentElement);
+  scene.background = new THREE.Color(cs.getPropertyValue("--scene").trim() || "#e4e6eb");
+  const accent = cs.getPropertyValue("--accent").trim() || "#2447c8";
+  for (const p of parts) p.obj.edges.material.color.set(accent);
+  handle.material.color.set(accent);
+  for (const a of arts) if (a.obj) a.obj.edges.material.color.set(accent);
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", syncTheme);
+new MutationObserver(syncTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+function resize() {
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  persp.aspect = w / h; persp.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(canvas);
+resize();
+
+setTab(ui.tab === "walls" ? "walls" : "art");
+refreshAll(); setHint();
+loadArts().then(syncTheme);
+syncTheme();
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (mode === "orbit") applyOrbit();
+  else if (mode === "plan") applyPlan();
+  else { stepWalk(dt); applyWalk(); }
+  if (selArt) {
+    placeHandle();
+    const dist = cam === ortho ? plan.h * 0.007 : Math.max(0.02, cam.position.distanceTo(handle.position) * 0.0065);
+    handle.scale.setScalar(dist);
+  }
+  renderer.render(scene, cam);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
