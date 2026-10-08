@@ -250,7 +250,7 @@ button{cursor:pointer}
       <section class="tabpane" id="p-lay" role="tabpanel" aria-labelledby="t-lay" hidden>
         <div class="opts first">
           <h3 class="sub">Options from the drawings</h3>
-          <p class="legend">Switch between the options in the elevation PDFs. This only moves walls and the frames placed from the drawings; your own pictures stay where they are.</p>
+          <p class="legend">Switch between the options in the elevation PDFs. Each wall option also brings the frames drawn on the free-standing walls on that page. Only frames placed from the drawings change; your own pictures stay where they are.</p>
           <span class="field">Free-standing walls (CV_kiall_nezo_1001)</span>
           <div class="filter" id="presetWalls"></div>
           <span class="field">West wall frames</span>
@@ -966,9 +966,51 @@ function placeDrawingItems(items, srcW) {
 }
 function loadFrameLayout() {
   const key = WEST_SETS[opts.westSet] ? opts.westSet : "1002p1";
-  const n = placeDrawingItems([...FRAME_LAYOUT, ...westItems(key)], WEST_SETS[key].src);
+  let n = placeDrawingItems([...FRAME_LAYOUT, ...westItems(key)], WEST_SETS[key].src);
+  const wp = currentWallPreset(); if (wp) n += placePartFrames(wp);
   saveArts(); refreshAll();
   say(`${n} frames and panels placed from the elevation drawings`);
+}
+// Frames on the free-standing walls for each wall option: [wall, face, view, x0, x1, y0, y1, style, title, depth].
+// view "E" = 1001 p7–p9 (looking east, left = north), "W" = p10–p11 (looking west, left = south),
+// "N" = p5–p6 (looking north, left = west). Positions are measured along the wall from its current ends.
+const VIEWS = { E: { k: L / 2000, H: 440 }, W: { k: L / 2000, H: 440 }, N: { k: W / 2000, H: 547 } };
+const BIO = ["text", "Életrajz (biography)", 0.2];
+const PART_FRAMES = {
+  p5: [["MOB4", "S", "N", 1050, 1175, 222, 358], ["MOB4", "S", "N", 1245, 1370, 222, 358], ["MOB4", "S", "N", 1440, 1565, 222, 358]],
+  p6: [["MOB4", "S", "N", 489, 613, 225, 358], ["MOB4", "S", "N", 701, 851, 240, 300, ...BIO]],
+  p7: [["MOB4", "W", "E", 54, 155, 180, 288], ["MOB4", "W", "E", 211, 312, 180, 288], ["MOB4", "W", "E", 369, 470, 180, 288],
+       ["MOB2N", "W", "E", 652, 753, 180, 288], ["GK2S", "W", "E", 1418, 1518, 180, 288]],
+  p8: [["MOB4", "W", "E", 54, 155, 180, 288], ["MOB4", "W", "E", 211, 312, 180, 288], ["MOB2N", "W", "E", 417, 523, 176, 289],
+       ["GK25", "W", "E", 759, 859, 178, 287], ["MOB2S", "W", "E", 1349, 1450, 178, 288]],
+  p9: [["MOB4", "W", "E", 54, 155, 180, 288], ["MOB4", "W", "E", 211, 312, 180, 288], ["MOB2N", "W", "E", 417, 523, 176, 289],
+       ["GK25", "W", "E", 684, 789, 176, 289], ["GK25", "W", "E", 832, 932, 178, 287],
+       ["MOB2S", "W", "E", 1063, 1298, 103, 362, "work", "Tapestry 3", 1.5], ["GK2S", "W", "E", 1418, 1518, 180, 288]],
+  p10: [["GK2S", "E", "W", 406, 507, 180, 287], ["GK2E", "E", "W", 526, 631, 204, 260, "work", "Print", 0.5],
+        ["GK2E", "E", "W", 526, 561, 270, 304, "work", "Small print", 0.5], ["GK25", "E", "W", 1042, 1288, 96, 342, "work", "Textile tableau 2", 2],
+        ["MOB4", "E", "W", 1537, 1637, 180, 289], ["MOB4", "E", "W", 1707, 1827, 192, 240, ...BIO]],
+  p11: [["GK2S", "E", "W", 406, 507, 178, 287], ["GK2S", "E", "W", 513, 612, 178, 287], ["GK2E", "E", "W", 769, 873, 176, 289],
+        ["GK25", "E", "W", 1042, 1288, 96, 342, "work", "Textile tableau 2", 2],
+        ["MOB4", "E", "W", 1537, 1637, 180, 289], ["MOB4", "E", "W", 1707, 1827, 192, 240, ...BIO]],
+};
+function placePartFrames(key) {
+  for (const a of arts.filter(x => x.fromDrawing === "P")) { removeArtObj(a); arts.splice(arts.indexOf(a), 1); if (selArt === a) { selArt = null; handle.visible = false; } }
+  const count = {};
+  let n = 0;
+  for (const [pid, face, view, x0, x1, y0, y1, style = "frame", title, depth] of PART_FRAMES[key] || []) {
+    const p = parts.find(q => q.id === pid), surf = p && partSurfaces(p).find(f => f.letter === face);
+    if (!surf) continue;
+    const { k, H } = VIEWS[view], zt = (H - y0) * k, zb = (H - y1) * k;
+    const u = view === "E" ? (p.cy + p.len / 2) - (L - x0 * k) : view === "W" ? x0 * k - (p.cy - p.len / 2) : x0 * k - (p.cx - p.len / 2);
+    const tag = `${pid}-${face}`;
+    count[tag + style] = (count[tag + style] || 0) + 1;
+    const name = title ? (style === "text" ? `${title} on ${pid}` : `${title} (${pid})`) : `Frame ${tag}${count[tag + style]}`;
+    const a = newArt({ title: name, style, w: (x1 - x0) * k, h: zt - zb, d: (depth || 3) / 100, wall: surf.id, u, zc: (zt + zb) / 2,
+      lock: true, sizeGuessed: style === "text", fromDrawing: "P",
+      note: `Position from elevation CV_kiall_nezo_1001 ${key}` + (style === "text" ? " – size not given" : "") });
+    setArtTexture(a); placeArt(a); n++;
+  }
+  return n;
 }
 function applyWestSet(key) {
   opts.westSet = key; save();
@@ -2248,9 +2290,11 @@ document.getElementById("presetWalls").addEventListener("click", e => {
   const k = e.target.closest("[data-k]")?.dataset.k; if (!k) return;
   const pos = WALL_PRESETS.find(x => x[0] === k)[2];
   for (const p of parts) { Object.assign(p, DEFAULTS[p.id], pos[p.id] || {}); placePart(p); }
+  const usingDrawings = arts.some(a => a.fromDrawing), nf = usingDrawings ? placePartFrames(k) : 0;
   evaluate(); evaluateArts(); refreshRows(); refreshArtList(); save(); saveArts(); renderPresets();
   const moved = Object.keys(pos);
-  say(k === "plan" ? "Walls back to the original plan" : `${moved.join(" and ")} placed as in page ${k.slice(1)} of 1001 – the distance from the pillars is my estimate`);
+  say((k === "plan" ? "Walls back to the original plan" : `${moved.join(" and ")} placed as in page ${k.slice(1)} of 1001 – the distance from the pillars is my estimate`)
+      + (nf ? ` · ${nf} frames on the free-standing walls` : !usingDrawings && PART_FRAMES[k] ? " · press “Frames from drawings” to add its frames" : ""));
 });
 document.getElementById("presetWest").addEventListener("click", e => { const k = e.target.closest("[data-k]")?.dataset.k; if (k) applyWestSet(k); });
 
