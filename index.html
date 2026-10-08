@@ -348,7 +348,7 @@ const SURF = {
 const COL = {
   wall: [0.93, 0.90, 0.84], mobile: [0.95, 0.93, 0.88], drywall: [0.91, 0.74, 0.72], pillar: [0.90, 0.88, 0.83],
   floor: [0.60, 0.36, 0.27], ceiling: [0.97, 0.97, 0.96], bench: [0.92, 0.91, 0.88], glass: [0.62, 0.72, 0.80],
-  door: [0.33, 0.24, 0.18], reveal: [0.88, 0.86, 0.80], frame: [0.08, 0.08, 0.08], person: [0.25, 0.35, 0.55],
+  door: [0.33, 0.24, 0.18], reveal: [0.88, 0.86, 0.80], frame: [0.08, 0.08, 0.08],
 };
 
 function part(id, label, short, p0, p1, t, z0, z1, mobile) {
@@ -468,7 +468,7 @@ const MAT = {
   wall: hexMat("wall"), pillar: hexMat("wall"), niche: hexMat("niche"), winframe: hexMat("winframe", { roughness: 0.6 }),
   door: hexMat("door", { roughness: 0.6 }), stone: hexMat("stone", { roughness: 0.95 }), bench: hexMat("bench"),
   floor: hexMat("floor", { roughness: 0.55 }), floorSide: hexMat("floor"), mobile: hexMat("mobile"), drywall: hexMat("drywall"),
-  ceiling: mat("ceiling", { side: THREE.DoubleSide }), frame: mat("frame", { roughness: 0.4 }), person: mat("person"),
+  ceiling: mat("ceiling", { side: THREE.DoubleSide }), frame: mat("frame", { roughness: 0.4 }),
   glass: new THREE.MeshStandardMaterial({ color: 0xdfe4e3, roughness: 0.25, transparent: true, opacity: 0.8 }),
   brass: new THREE.MeshStandardMaterial({ color: 0xb8963e, roughness: 0.35, metalness: 0.6 }),
   vitrine: new THREE.MeshStandardMaterial({ color: 0xf4f4f2, roughness: 0.5 }),
@@ -652,13 +652,7 @@ TAG = { type: "pillar", name: "North pillar", cy: PA_C };
 box(PX, PA_C, CEIL / 2, PILLAR, PILLAR, CEIL, 0, MAT.pillar, room);
 TAG = { type: "pillar", name: "South pillar", cy: PB_C };
 box(PX, PB_C, CEIL / 2, PILLAR, PILLAR, CEIL, 0, MAT.pillar, room);
-{
-  TAG = { type: "person" };
-  box(2.6, 11.5, 0.72, 0.45, 0.25, 1.44, 0, MAT.person, room);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 14), MAT.person);
-  head.position.copy(toV(2.6, 11.5, 1.58)); head.castShadow = true; head.userData.info = TAG; room.add(head);
-  TAG = null;
-}
+TAG = null;
 
 function textCanvas(text, { size = 64, color = "#1d1d1d", bg = null, pad = 18 } = {}) {
   const c = document.createElement("canvas"), g = c.getContext("2d");
@@ -1479,7 +1473,7 @@ function describe({ d, P }) {
   if (info.type === "vitrine") return { kind: "Display case", title: `Vitrine by the ${info.wall.toLowerCase()}`, big: `${fmt(info.w)} × ${fmt(info.d)} cm`,
     rows: [["Height", "90 cm"], ["Glass case", "70 – 88 cm high"]], note: "From the elevation drawings. It blocks mobile walls and walking." };
   if (info.type === "ceiling") return { kind: "Ceiling", title: "Suspended ceiling", big: `${cmT(CEIL)} high`, rows: [] };
-  return { kind: "Scale figure", title: "Visitor", big: "170 cm tall", rows: [["Eye height", "about 160 cm"]] };
+  return { kind: "Room", title: "Kiállítótér 6", big: `${fmt(W)} × ${fmt(L)} cm`, rows: [] };
 }
 function showInfo(x, y) {
   const hit = probe(x, y);
