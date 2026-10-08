@@ -9,6 +9,8 @@ A planning model of exhibition room 6 (E-102) of the Vasarely Museum, Budapest: 
 - **3D, Plan and Walk views.** Walk through the room at 160 cm eye height with W A S D.
 - **Mobile walls.** Drag the white walls (MOB4, MOB2N, MOB2S) and rotate them with R. Clashes with pillars, benches, doors and other walls are flagged.
 - **Artworks.** Add images (PNG, JPG, WebP…) one by one or in batches, or import an Excel/CSV list with titles and sizes. Drag artworks from the list onto any wall, move them, and resize them with the corner dot.
+- **Room details from the elevation drawings.** Arched window niches with casements, arched doors (stone frame and double doors to room 5), display cases, and the two covered windows (east 3, west 2), which you can switch back on in the Walls tab. Every colour can be changed with a picker or a #hex code.
+- **Frames from drawings.** One click places the empty frames and pink panels from the elevations, at their drawn positions.
 - **Measure.** Click any wall, window, pillar, artwork or the floor to see its size and distances.
 - **Copy hanging list.** Copies a table you can paste into Excel.
 

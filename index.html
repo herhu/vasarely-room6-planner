@@ -102,6 +102,12 @@ button{cursor:pointer}
 .opts label{display:flex;gap:8px;align-items:center;font-size:13px}
 .opts input[type="checkbox"]{accent-color:var(--accent)}
 .opts input[type="number"]{width:64px;border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:3px 6px;font:13px var(--mono)}
+.sub{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.winlist{display:flex;flex-direction:column;gap:6px}
+.colors{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:13px}
+.hexrow{display:flex;gap:6px;align-items:center}
+.hexrow input[type="color"],.colors input[type="color"]{width:34px;height:28px;padding:0 2px;border:1px solid var(--line);border-radius:6px;background:var(--panel-2);cursor:pointer}
+.hexrow input[type="text"],.colors input[type="text"]{width:86px;border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:4px 6px;font:13px var(--mono);text-transform:uppercase;color:var(--ink)}
 .actions{display:flex;flex-wrap:wrap;gap:6px}
 .copyOut{width:100%;min-height:120px;font:12px var(--mono);border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--ink);padding:8px;resize:vertical}
 
@@ -208,6 +214,7 @@ button{cursor:pointer}
           <div class="actions">
             <button class="btn primary" id="addImgBtn">Add images</button>
             <button class="btn" id="addSheetBtn">Import Excel / CSV</button>
+            <button class="btn" id="frameLayoutBtn">Frames from drawings</button>
           </div>
           <p>A list needs a title and a size (width and height in cm, or one “size” column like <span style="font-family:var(--mono)">82,5 x 76,5</span>). An <b>image</b> column with file names links each row to its picture.</p>
         </div>
@@ -237,6 +244,16 @@ button{cursor:pointer}
       <section class="tabpane" id="p-walls" role="tabpanel" aria-labelledby="t-walls" hidden>
         <p class="legend"><b>White</b> mobile walls can be dragged in the 3D or Plan view. <b>Pink</b> drywalls are fixed. Positions are the wall's centre, measured in cm from the <b>west</b> wall (X) and the <b>south</b> wall (Y). 0° runs west–east, 90° runs south–north. Artworks hung on a mobile wall move with it.</p>
         <div class="walls" id="walls"></div>
+        <div class="opts">
+          <h3 class="sub">Windows</h3>
+          <p class="legend">The drawings show two windows covered. Tick a window to cover it with plain wall; you can then hang on that spot.</p>
+          <div id="winList" class="winlist"></div>
+        </div>
+        <div class="opts">
+          <h3 class="sub">Colours</h3>
+          <div id="colorList" class="colors"></div>
+          <div class="actions"><button class="btn" id="resetColors">Reset colours to the drawings</button></div>
+        </div>
         <div class="opts">
           <label><input type="checkbox" id="optSnap" checked> Snap walls to 5 cm and 15°, artworks to 1 cm</label>
           <label><input type="checkbox" id="optDry"> Let me move the drywalls too</label>
@@ -287,6 +304,10 @@ const OPENINGS = {
   W: [["window", 2.10, 3.36, BENCH_H, BENCH_H + 2.52], ["window", 7.26, 8.54, BENCH_H, BENCH_H + 2.52],
       ["window", 12.49, 13.60, BENCH_H, BENCH_H + 2.52]],
 };
+const OPENING_NAMES = { N: ["stair door"], S: ["room 5 door"], E: ["window 1 (north)", "window 2 (middle)", "window 3 (south)"], W: ["window 1 (south)", "window 2 (middle)", "window 3 (north)"] };
+// windows the elevation drawings show as covered (a display case or panel stands there)
+const DEFAULT_COVERED = { E3: true, W2: true };
+const openings = key => (OPENINGS[key] || []).filter((o, i) => !(opts.covered || DEFAULT_COVERED)[key + (i + 1)]);
 const SURF = {
   N: { o: [0, L], r: [1, 0], n: [0, -1], len: W, z0: 0, name: "North wall" },
   S: { o: [W, 0], r: [-1, 0], n: [0, 1], len: W, z0: 0, name: "South wall 6/7" },
@@ -326,19 +347,11 @@ const OBSTACLES = [
   { name: "room 5 door (keep 1 m clear)", cx: W - (1.78 + 4.28) / 2, cy: 0.5, hx: 1.25, hy: 0.5, ang: 0, level: "warn" },
 ];
 
-const SAMPLE_CSV = `title,width_cm,height_cm,depth_cm,image,wall,offset_cm,centre_cm,note
-PÉLDA – magángyűjteményi mű (max. klasszikus Vasarely keret),82.5,76.5,3.3,,GK25_W,40,150,keretméret még nincs – max. méret
-PÉLDA – piros absztrakt 1,60,80,3,,GK25_E,20,150,a 2.5 m-es falon egymás mellett?
-PÉLDA – piros absztrakt 2,60,80,3,,GK25_E,150,150,
-PÉLDA – textilterv (Makláry),50,50,3,,,,150,csak ha megérkezik
-PÉLDA – Életrajz / teremszöveg,120,160,1,,N,1000,150,
-PÉLDA – nagy mű 4 m-es mobilfalon,150,120,4,,MOB4_W,120,150,`;
-
 // ---------------------------------------------------------------------------
 // Persistence (this browser only): layout + list in localStorage, images in IndexedDB
 // ---------------------------------------------------------------------------
 const KEY = "vasarely-room6-layout-v1", ART_KEY = "vasarely-room6-art-v1", UI_KEY = "vasarely-room6-ui-v1";
-const opts = { snap: true, dry: false, labels: true, centre: 150, slide: false };
+const opts = { snap: true, dry: false, labels: true, centre: 150, slide: false, covered: { ...DEFAULT_COVERED }, colors: {} };
 const ui = { tab: "art", filter: "all" };
 function load() {
   try {
@@ -392,12 +405,29 @@ const scene = new THREE.Scene();
 
 const srgb = c => new THREE.Color().setRGB(c[0], c[1], c[2], THREE.SRGBColorSpace);
 const mat = (key, o = {}) => new THREE.MeshStandardMaterial({ color: srgb(COL[key]), roughness: 0.85, ...o });
+// colours picked from the elevation drawings (CV_kiall_nezo_1001 / 1002)
+const DEFAULT_COLORS = { wall: "#F7F3EE", niche: "#E6DDD1", winframe: "#E2D8CA", door: "#3A2A20", stone: "#CDBFA8",
+  bench: "#DDD5CA", mobile: "#FFFFFF", drywall: "#E8BDB8", floor: "#9A5C45" };
+const COLOR_LABELS = [["wall", "Walls"], ["niche", "Window niches"], ["winframe", "Window frames"], ["door", "Doors"],
+  ["stone", "Door stone frame"], ["bench", "Radiator benches"], ["mobile", "Mobile walls"], ["drywall", "Drywalls"], ["floor", "Floor"]];
+const colorOf = k => (opts.colors && opts.colors[k]) || DEFAULT_COLORS[k];
+const hexMat = (k, o = {}) => new THREE.MeshStandardMaterial({ color: new THREE.Color(colorOf(k)), roughness: 0.85, ...o });
 const MAT = {
-  wall: mat("wall"), reveal: mat("reveal"), door: mat("door", { roughness: 0.6 }), bench: mat("bench"),
-  pillar: mat("pillar"), ceiling: mat("ceiling", { side: THREE.DoubleSide }), frame: mat("frame", { roughness: 0.4 }),
-  glass: mat("glass", { roughness: 0.1, transparent: true, opacity: 0.55 }), person: mat("person"),
-  mobile: mat("mobile"), drywall: mat("drywall"),
+  wall: hexMat("wall"), pillar: hexMat("wall"), niche: hexMat("niche"), winframe: hexMat("winframe", { roughness: 0.6 }),
+  door: hexMat("door", { roughness: 0.6 }), stone: hexMat("stone", { roughness: 0.95 }), bench: hexMat("bench"),
+  floor: hexMat("floor", { roughness: 0.55 }), floorSide: hexMat("floor"), mobile: hexMat("mobile"), drywall: hexMat("drywall"),
+  ceiling: mat("ceiling", { side: THREE.DoubleSide }), frame: mat("frame", { roughness: 0.4 }), person: mat("person"),
+  glass: new THREE.MeshStandardMaterial({ color: 0xdfe4e3, roughness: 0.25, transparent: true, opacity: 0.8 }),
+  brass: new THREE.MeshStandardMaterial({ color: 0xb8963e, roughness: 0.35, metalness: 0.6 }),
+  vitrine: new THREE.MeshStandardMaterial({ color: 0xf4f4f2, roughness: 0.5 }),
+  vglass: new THREE.MeshStandardMaterial({ color: 0xa9adb0, roughness: 0.15, transparent: true, opacity: 0.45 }),
 };
+function applyColors() {
+  for (const [k] of COLOR_LABELS) MAT[k].color.set(colorOf(k));
+  MAT.pillar.color.set(colorOf("wall")); MAT.floorSide.color.set(colorOf("floor"));
+  if (typeof parts !== "undefined") for (const p of parts) if (p.obj) p.obj.m.color.set(colorOf(p.mobile ? "mobile" : "drywall"));
+  if (typeof arts !== "undefined") for (const a of arts) if (a.style === "text" && !a.imgEl) setArtTexture(a);
+}
 
 const toV = (x, y, z) => new THREE.Vector3(x, z, -y);
 let TAG = null;   // what a click on the next boxes should describe
@@ -420,10 +450,10 @@ function surfBox(s, u0, u1, z0, z1, off0, off1, m, parent) {
 function gridTexture() {
   const c = document.createElement("canvas"); c.width = c.height = 256;
   const g = c.getContext("2d");
-  g.fillStyle = "#" + srgb(COL.floor).getHexString(); g.fillRect(0, 0, 256, 256);
-  g.strokeStyle = "rgba(255,235,220,.16)"; g.lineWidth = 1;
+  g.fillStyle = "#ffffff"; g.fillRect(0, 0, 256, 256);   // tinted by the floor colour
+  g.strokeStyle = "rgba(0,0,0,.08)"; g.lineWidth = 1;
   for (let i = 1; i < 4; i++) { g.beginPath(); g.moveTo(i * 64, 0); g.lineTo(i * 64, 256); g.moveTo(0, i * 64); g.lineTo(256, i * 64); g.stroke(); }
-  g.strokeStyle = "rgba(255,235,220,.42)"; g.lineWidth = 3; g.strokeRect(0, 0, 256, 256);
+  g.strokeStyle = "rgba(0,0,0,.2)"; g.lineWidth = 3; g.strokeRect(0, 0, 256, 256);
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -433,10 +463,11 @@ const room = new THREE.Group(); scene.add(room);
 {
   const fw = W + 2 * WALL_T, fl = L + 2 * WALL_T;
   const tex = gridTexture(); tex.repeat.set(fw, fl); tex.offset.set(1 - WALL_T % 1, 1 - WALL_T % 1);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.55 }));
+  MAT.floor.map = tex;
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(fw, fl), MAT.floor);
   floor.rotation.x = -Math.PI / 2; floor.position.copy(toV(W / 2, L / 2, 0)); floor.receiveShadow = true; floor.userData.info = { type: "floor" };
   room.add(floor);
-  box(W / 2, L / 2, -0.06, fw, fl, 0.1, 0, mat("floor"), room, false);
+  box(W / 2, L / 2, -0.06, fw, fl, 0.1, 0, MAT.floorSide, room, false);
 }
 const ceiling = new THREE.Group(); scene.add(ceiling);
 {
@@ -449,30 +480,107 @@ const ceiling = new THREE.Group(); scene.add(ceiling);
   }
   ceiling.visible = false;
 }
-const wallGroups = {};
-for (const key of ["N", "S", "E", "W"]) {
-  TAG = { type: "wall", key };
-  const g = new THREE.Group(); wallGroups[key] = g; room.add(g);
-  const s = SURF[key], ops = [...(OPENINGS[key] || [])].sort((a, b) => a[1] - b[1]);
-  let u = -WALL_T;
-  for (const [kind, u0, u1, z0, z1] of ops) {
-    surfBox(s, u, u0, 0, CEIL, -WALL_T, 0, MAT.wall, g);
-    surfBox(s, u0, u1, z1, CEIL, -WALL_T, 0, MAT.wall, g);
-    if (kind === "window") {
-      surfBox(s, u0, u1, 0, SILL, -WALL_T, -0.30, MAT.wall, g);
-      surfBox(s, u0, u1, SILL, z1, -WALL_T + 0.05, -WALL_T + 0.07, MAT.glass, g);
-      surfBox(s, u0 - 0.02, u0, z0, z1, -WALL_T, 0, MAT.reveal, g);
-      surfBox(s, u1, u1 + 0.02, z0, z1, -WALL_T, 0, MAT.reveal, g);
-    } else {
-      surfBox(s, u0 + 0.10, u1 - 0.10, 0, z1 - 0.08, -0.35, -0.30, MAT.door, g);
-      surfBox(s, u0, u0 + 0.10, 0, z1, -0.35, 0.02, MAT.reveal, g);
-      surfBox(s, u1 - 0.10, u1, 0, z1, -0.35, 0.02, MAT.reveal, g);
-      surfBox(s, u0, u1, z1 - 0.08, z1, -0.35, 0.02, MAT.reveal, g);
-    }
-    u = u1;
-  }
-  surfBox(s, u, s.len + WALL_T, 0, CEIL, -WALL_T, 0, MAT.wall, g);
+// Region between a flat top (zt) and a segmental arch springing at zs, extruded through the wall
+function archFill(s, u0, u1, zs, zt, rise, off0, off1, mats, parent) {
+  const w = u1 - u0; if (w <= 0) return;
+  rise = Math.min(rise, zt - zs - 0.002);
+  const c = w / 2, R = (c * c + rise * rise) / (2 * rise), cy = zs + rise - R;
+  const a0 = Math.atan2(zs - cy, -c), a1 = Math.atan2(zs - cy, c);
+  const sh = new THREE.Shape(); sh.moveTo(0, zs);
+  for (let i = 1; i <= 28; i++) { const a = a0 + (a1 - a0) * i / 28; sh.lineTo(c + R * Math.cos(a), cy + R * Math.sin(a)); }
+  sh.lineTo(w, zt); sh.lineTo(0, zt); sh.lineTo(0, zs);
+  const m = new THREE.Mesh(new THREE.ExtrudeGeometry(sh, { depth: off1 - off0, bevelEnabled: false }), mats);
+  m.userData.info = TAG; m.castShadow = m.receiveShadow = true;
+  const P = toV(s.o[0] + s.r[0] * u0 + s.n[0] * off0, s.o[1] + s.r[1] * u0 + s.n[1] * off0, 0);
+  m.matrixAutoUpdate = false;
+  m.matrix.makeBasis(new THREE.Vector3(s.r[0], 0, -s.r[1]), new THREE.Vector3(0, 1, 0), new THREE.Vector3(s.n[0], 0, -s.n[1])).setPosition(P);
+  parent.add(m);
 }
+function doorLeaf(s, a, b, top, g) {
+  surfBox(s, a, b, 0, top, -0.32, -0.27, MAT.door, g);
+  surfBox(s, a + 0.08, b - 0.08, 0.25, 0.95, -0.27, -0.255, MAT.door, g);
+  surfBox(s, a + 0.08, b - 0.08, 1.10, Math.min(top - 0.3, 1.95), -0.27, -0.255, MAT.door, g);
+}
+const wallGroups = {};
+function buildWalls() {
+  for (const key of ["N", "S", "E", "W"]) {
+    let g = wallGroups[key];
+    if (!g) { g = new THREE.Group(); wallGroups[key] = g; room.add(g); }
+    else for (const c of [...g.children]) { g.remove(c); c.geometry.dispose(); }
+    TAG = { type: "wall", key };
+    const s = SURF[key], ops = [...openings(key)].sort((a, b) => a[1] - b[1]);
+    let u = -WALL_T;
+    for (const [kind, u0, u1, z0, z1] of ops) {
+      surfBox(s, u, u0, 0, CEIL, -WALL_T, 0, MAT.wall, g);
+      surfBox(s, u0, u1, z1, CEIL, -WALL_T, 0, MAT.wall, g);
+      const uc = (u0 + u1) / 2;
+      if (kind === "window") {
+        // deep niche with a segmental arch, two casements with a transom
+        const ft = z1 - 0.36, fo0 = -WALL_T + 0.05, fo1 = -WALL_T + 0.11, bar = 0.06, zm = SILL + (ft - SILL) * 0.5;
+        archFill(s, u0, u1, z1 - 0.30, z1, 0.30, -WALL_T, 0, [MAT.wall, MAT.niche], g);
+        surfBox(s, u0, u0 + 0.012, 0, z1, -WALL_T, 0, MAT.niche, g);
+        surfBox(s, u1 - 0.012, u1, 0, z1, -WALL_T, 0, MAT.niche, g);
+        surfBox(s, u0, u1, 0, SILL, -WALL_T, -0.30, MAT.niche, g);
+        surfBox(s, u0, u1, SILL - 0.03, SILL, -0.30, -0.27, MAT.niche, g);
+        surfBox(s, u0, u1, ft, z1, -WALL_T, -WALL_T + 0.04, MAT.niche, g);
+        surfBox(s, u0 + 0.03, u1 - 0.03, SILL, ft, -WALL_T + 0.04, -WALL_T + 0.05, MAT.glass, g);
+        surfBox(s, u0 + 0.03, u0 + 0.03 + bar, SILL, ft, fo0, fo1, MAT.winframe, g);
+        surfBox(s, u1 - 0.03 - bar, u1 - 0.03, SILL, ft, fo0, fo1, MAT.winframe, g);
+        surfBox(s, u0 + 0.03, u1 - 0.03, ft - bar, ft, fo0, fo1, MAT.winframe, g);
+        surfBox(s, u0 + 0.03, u1 - 0.03, SILL, SILL + 0.08, fo0, fo1, MAT.winframe, g);
+        surfBox(s, uc - 0.04, uc + 0.04, SILL, ft, fo0, fo1 + 0.01, MAT.winframe, g);
+        surfBox(s, u0 + 0.03, u1 - 0.03, zm - 0.025, zm + 0.025, fo0, fo1, MAT.winframe, g);
+        surfBox(s, uc + 0.045, uc + 0.065, zm + 0.04, zm + 0.15, fo1, fo1 + 0.03, MAT.brass, g);
+      } else if (key === "S") {
+        // room 5 door: arched plaster niche, stone frame with keystone, double wooden door
+        const st0 = -0.16, st1 = -0.04, jw = 0.26, l0 = u0 + 0.06 + jw, l1 = u1 - 0.06 - jw;
+        archFill(s, u0, u1, z1 - 0.45, z1, 0.45, -WALL_T, 0, [MAT.wall, MAT.wall], g);
+        surfBox(s, u0, u0 + 0.06, 0, 2.47, -WALL_T, st1, MAT.wall, g);
+        surfBox(s, u1 - 0.06, u1, 0, 2.47, -WALL_T, st1, MAT.wall, g);
+        surfBox(s, u0, u1, 2.40, z1, -WALL_T, st0, MAT.wall, g);
+        surfBox(s, u0 + 0.06, u0 + 0.06 + jw, 0, 2.05, st0, st1, MAT.stone, g);
+        surfBox(s, u1 - 0.06 - jw, u1 - 0.06, 0, 2.05, st0, st1, MAT.stone, g);
+        archFill(s, u0 + 0.06, u1 - 0.06, 2.05, 2.47, 0.17, st0, st1, [MAT.stone, MAT.stone], g);
+        surfBox(s, uc - 0.09, uc + 0.09, 2.17, 2.50, st0 - 0.01, st1 + 0.01, MAT.stone, g);
+        surfBox(s, l0, l1, 0, 2.35, -WALL_T, -0.33, MAT.frame, g);
+        doorLeaf(s, l0, uc - 0.006, 2.22, g); doorLeaf(s, uc + 0.006, l1, 2.22, g);
+        surfBox(s, uc - 0.07, uc - 0.04, 1.0, 1.12, -0.27, -0.24, MAT.brass, g);
+      } else {
+        // stair door: arched niche with a double wooden door
+        archFill(s, u0, u1, z1 - 0.40, z1, 0.40, -WALL_T, 0, [MAT.wall, MAT.wall], g);
+        surfBox(s, u0, u0 + 0.04, 0, z1, -WALL_T, -0.27, MAT.wall, g);
+        surfBox(s, u1 - 0.04, u1, 0, z1, -WALL_T, -0.27, MAT.wall, g);
+        surfBox(s, u0, u1, 0, z1, -WALL_T, -0.33, MAT.frame, g);
+        doorLeaf(s, u0 + 0.04, uc - 0.006, z1, g); doorLeaf(s, uc + 0.006, u1 - 0.04, z1, g);
+        surfBox(s, uc - 0.07, uc - 0.04, 1.0, 1.12, -0.27, -0.24, MAT.brass, g);
+      }
+      u = u1;
+    }
+    surfBox(s, u, s.len + WALL_T, 0, CEIL, -WALL_T, 0, MAT.wall, g);
+  }
+  TAG = null;
+}
+buildWalls();
+
+// display cases (vitrines) from the elevation drawings: [wall, u0, u1, off0, off1]
+const VITRINES = [
+  ["E", 6.45, 7.65, BENCH_D + 0.03, BENCH_D + 0.63], ["E", 12.15, 13.35, BENCH_D + 0.03, BENCH_D + 0.63],
+  ["W", 2.13, 3.33, BENCH_D + 0.03, BENCH_D + 0.63], ["W", 12.48, 13.68, BENCH_D + 0.03, BENCH_D + 0.63],
+  ["S", 10.72, 11.32, 0.05, 1.25],
+];
+for (const [key, u0, u1, f0, f1] of VITRINES) {
+  const s = SURF[key];
+  TAG = { type: "vitrine", w: Math.max(u1 - u0, f1 - f0), d: Math.min(u1 - u0, f1 - f0), wall: s.name };
+  const lg = 0.035;
+  for (const [a, b] of [[u0, u0 + lg], [u1 - lg, u1]]) for (const [c, d] of [[f0, f0 + lg], [f1 - lg, f1]]) surfBox(s, a, b, 0, 0.68, c, d, MAT.vitrine, room);
+  surfBox(s, u0, u1, 0.66, 0.70, f0, f1, MAT.vitrine, room);
+  surfBox(s, u0 + 0.01, u1 - 0.01, 0.70, 0.88, f0 + 0.01, f1 - 0.01, MAT.vglass, room);
+  surfBox(s, u0, u1, 0.88, 0.90, f0, f1, MAT.vitrine, room);
+  const uc = (u0 + u1) / 2, oc = (f0 + f1) / 2;
+  OBSTACLES.push({ name: "display case", cx: s.o[0] + s.r[0] * uc + s.n[0] * oc, cy: s.o[1] + s.r[1] * uc + s.n[1] * oc,
+                   hx: (u1 - u0) / 2, hy: (f1 - f0) / 2, ang: Math.atan2(s.r[1], s.r[0]), level: "err" });
+}
+TAG = null;
 TAG = { type: "bench", side: "west" };
 box(BENCH_D / 2, L / 2, BENCH_H / 2, BENCH_D, L, BENCH_H, 0, MAT.bench, room);
 TAG = { type: "bench", side: "east" };
@@ -623,20 +731,39 @@ const unitBox = new THREE.BoxGeometry(1, 1, 1);
 const unitEdges = new THREE.EdgesGeometry(unitBox);
 const newId = () => "a" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
+const ART_STYLES = [["frame", "White frame with mat"], ["frameDark", "Black frame"], ["panel", "Colour panel"], ["text", "Wall text"], ["work", "Placeholder"]];
 function placeholderTexture(a) {
-  const c = document.createElement("canvas"); c.width = 512; c.height = Math.max(64, Math.round(512 / Math.max(0.2, a.w / a.h)));
-  if (c.height > 1024) { c.height = 1024; }
-  const g = c.getContext("2d");
-  g.fillStyle = "#6b7285"; g.fillRect(0, 0, c.width, c.height);
-  g.strokeStyle = "rgba(255,255,255,.18)"; g.lineWidth = 2;
-  for (let i = -c.height; i < c.width; i += 28) { g.beginPath(); g.moveTo(i, c.height); g.lineTo(i + c.height, 0); g.stroke(); }
-  g.fillStyle = "#fff"; g.textAlign = "center"; g.textBaseline = "middle";
-  let size = 40; g.font = `600 ${size}px Archivo, system-ui, sans-serif`;
-  const words = a.title.split(/\s+/), lines = []; let line = "";
-  for (const w of words) { const t = line ? line + " " + w : w; if (g.measureText(t).width > c.width - 40 && line) { lines.push(line); line = w; } else line = t; }
-  if (line) lines.push(line);
-  const shown = lines.slice(0, Math.max(1, Math.floor((c.height - 20) / (size * 1.2))));
-  shown.forEach((l, i) => g.fillText(l, c.width / 2, c.height / 2 + (i - (shown.length - 1) / 2) * size * 1.2));
+  const ratio = Math.max(0.1, a.w / a.h);
+  const c = document.createElement("canvas");
+  c.width = ratio >= 1 ? 512 : Math.max(64, Math.round(512 * ratio)); c.height = ratio >= 1 ? Math.max(64, Math.round(512 / ratio)) : 512;
+  const g = c.getContext("2d"), W2 = c.width, H2 = c.height, st = a.style || "work";
+  const writeTitle = (color, size, maxLines) => {
+    g.fillStyle = color; g.textAlign = "center"; g.textBaseline = "middle";
+    g.font = `600 ${size}px Archivo, system-ui, sans-serif`;
+    const words = a.title.split(/\s+/), lines = []; let line = "";
+    for (const w of words) { const t = line ? line + " " + w : w; if (g.measureText(t).width > W2 - 40 && line) { lines.push(line); line = w; } else line = t; }
+    if (line) lines.push(line);
+    const shown = lines.slice(0, maxLines || Math.max(1, Math.floor((H2 - 20) / (size * 1.2))));
+    shown.forEach((l, i) => g.fillText(l, W2 / 2, H2 / 2 + (i - (shown.length - 1) / 2) * size * 1.2));
+  };
+  if (st === "frame" || st === "frameDark") {
+    const dark = st === "frameDark", m = Math.max(4, Math.round(Math.min(W2, H2) * 0.02));
+    g.fillStyle = dark ? "#1a1a1a" : "#c9c9c7"; g.fillRect(0, 0, W2, H2);
+    g.fillStyle = dark ? "#121212" : "#fdfdfb"; g.fillRect(m, m, W2 - 2 * m, H2 - 2 * m);
+    const iw = W2 * 0.5, ih = H2 * 0.55, ix = (W2 - iw) / 2, iy = (H2 - ih) / 2;
+    g.fillStyle = dark ? "#3a3a3a" : "#e7e6e2"; g.fillRect(ix, iy, iw, ih);
+    g.strokeStyle = dark ? "#555" : "#cfcdc8"; g.lineWidth = 2; g.strokeRect(ix, iy, iw, ih);
+  } else if (st === "panel") {
+    g.fillStyle = a.color || "#E5C5C8"; g.fillRect(0, 0, W2, H2);
+  } else if (st === "text") {
+    g.fillStyle = colorOf("wall"); g.fillRect(0, 0, W2, H2);
+    writeTitle("#3a3a3a", 34, 3);
+  } else {
+    g.fillStyle = "#8f8a84"; g.fillRect(0, 0, W2, H2);
+    g.strokeStyle = "rgba(255,255,255,.16)"; g.lineWidth = 2;
+    for (let i = -H2; i < W2; i += 28) { g.beginPath(); g.moveTo(i, H2); g.lineTo(i + H2, 0); g.stroke(); }
+    writeTitle("#fff", 40);
+  }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
@@ -656,7 +783,7 @@ function setArtTexture(a) {
   if (a.obj.tex) a.obj.tex.dispose();
   let t;
   if (a.imgEl) { t = new THREE.Texture(a.imgEl); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.needsUpdate = true; }
-  else t = placeholderTexture(a);
+  else { t = placeholderTexture(a); try { a.thumb = t.image.toDataURL("image/png"); } catch (_) { a.thumb = null; } }
   a.obj.tex = t; a.obj.front.map = t; a.obj.front.needsUpdate = true;
 }
 function placeArt(a) {
@@ -687,7 +814,7 @@ function checkArt(a, S = surfaces()) {
   if (u0 < -0.001 || u1 > s.len + 0.001) out.push(["err", "runs off the end of the wall"]);
   if (z0 < s.z0 - 0.001) out.push(["err", s.z0 > 0.3 && s.z0 < 0.4 ? "hangs into the radiator bench" : "reaches below the wall"]);
   if (z1 > s.z1 + 0.001) out.push(["err", "reaches above the wall"]);
-  for (const [kind, a0, a1, oz0, oz1] of (s.open && OPENINGS[s.open]) || [])
+  for (const [kind, a0, a1, oz0, oz1] of (s.open && openings(s.open)) || [])
     if (u0 < a1 && u1 > a0 && z0 < oz1 && z1 > oz0) out.push(["err", kind === "door" ? "covers the door" : "covers a window"]);
   for (const b of arts) {
     if (b === a || b.wall !== a.wall) continue;
@@ -707,7 +834,7 @@ function saveArts() {
   try {
     localStorage.setItem(ART_KEY, JSON.stringify(arts.map(a => ({
       id: a.id, title: a.title, artist: a.artist, inv: a.inv, w: a.w, h: a.h, d: a.d, note: a.note, image: a.image,
-      hasImg: a.hasImg, aspect: a.aspect, lock: a.lock, wall: a.wall, u: a.u, zc: a.zc, sizeGuessed: a.sizeGuessed }))));
+      hasImg: a.hasImg, aspect: a.aspect, lock: a.lock, wall: a.wall, u: a.u, zc: a.zc, sizeGuessed: a.sizeGuessed, style: a.style, color: a.color }))));
   } catch (e) {
     say("This browser is out of storage space – the list will not be kept after a reload");
   }
@@ -723,6 +850,39 @@ async function loadArts() {
     if (blob) { await attachBlob(a, blob, false); placeArt(a); updateArtCard(a); }
     else a.hasImg = false;
   }
+}
+
+// frame layout from the elevation drawings ------------------------------------
+// [wall, x0, x1, y0, y1 in drawing pixels, style, title, depth cm]; each drawing is 2000 px = the wall length
+const ELEV = { E: { len: L, H: 440, src: "CV_kiall_nezo_1001 p1" }, W: { len: L, H: 440, src: "CV_kiall_nezo_1002 p1" },
+               N: { len: W, H: 547, src: "CV_kiall_nezo_1001 p4" }, S: { len: W, H: 553, src: "CV_kiall_nezo_1001 p2" } };
+const FRAME_LAYOUT = [
+  ["E", 0, 157, 120, 285, "work", "Photo – portrait", 1], ["E", 428, 535, 120, 305, "panel", "Pink panel", 0.5],
+  ["E", 632, 732, 180, 288, "frame"], ["E", 1088, 1188, 178, 288, "frame"], ["E", 1275, 1375, 178, 288, "frame"],
+  ["E", 1460, 1567, 120, 305, "panel", "Pink panel", 0.5], ["E", 1623, 1723, 178, 288, "frame"], ["E", 1808, 1915, 175, 290, "frameDark"],
+  ["W", 71, 172, 180, 289, "frame"], ["W", 481, 586, 176, 289, "frame"], ["W", 646, 751, 176, 289, "frame"], ["W", 813, 913, 180, 289, "frame"],
+  ["W", 974, 1081, 119, 305, "panel", "Pink panel", 0.5], ["W", 1113, 1281, 136, 304, "work", "Large work (textile tableau)", 2],
+  ["W", 1342, 1447, 176, 289, "frame"], ["W", 1508, 1608, 179, 287, "frame"], ["W", 1844, 1944, 179, 287, "frame"],
+  ["N", 75, 207, 148, 380, "panel", "Pink panel", 0.5], ["N", 255, 588, 90, 485, "work", "Large tapestry", 1.5],
+  ["N", 676, 800, 224, 358, "frame"], ["N", 814, 938, 224, 358, "frame"], ["N", 1700, 1900, 220, 300, "text", "Kiállítás bevezető (intro text)", 0.2],
+  ["S", 793, 927, 150, 383, "panel", "Pink panel", 0.5], ["S", 1003, 1320, 148, 437, "work", "Tapestry 1", 1.5],
+  ["S", 1435, 1642, 146, 438, "work", "Tapestry 2", 1.5], ["S", 1758, 1884, 226, 362, "frame"],
+];
+function loadFrameLayout() {
+  const count = {};
+  let n = 0;
+  for (const [wall, x0, x1, y0, y1, style, title, depth] of FRAME_LAYOUT) {
+    const e = ELEV[wall], k = e.len / 2000;
+    const zt = (e.H - y0) * k, zb = (e.H - y1) * k;
+    count[wall + style] = (count[wall + style] || 0) + 1;
+    const name = title ? `${title}${style === "panel" ? " " + wall + count[wall + style] : ""}` : `${style === "frameDark" ? "Black frame" : "Frame"} ${wall}${count[wall + style]}`;
+    const a = newArt({ title: name, style, color: style === "panel" ? "#E5C5C8" : undefined, w: (x1 - x0) * k, h: zt - zb,
+      d: (depth || 3) / 100, wall, u: x0 * k, zc: (zt + zb) / 2, lock: true, sizeGuessed: style === "text",
+      note: `Position from elevation ${e.src}` + (style === "text" ? " – size not given" : "") });
+    setArtTexture(a); placeArt(a); n++;
+  }
+  saveArts(); refreshAll();
+  say(`${n} frames and panels placed from the elevation drawings`);
 }
 
 // images ---------------------------------------------------------------------
@@ -1090,7 +1250,7 @@ function neighbours(a, s) {
   // closest thing to the left and right of an artwork on the same face
   const z0 = a.zc - a.h / 2, z1 = a.zc + a.h / 2;
   const things = arts.filter(b => b !== a && b.wall === a.wall).map(b => [b.u, b.u + b.w, `“${b.title}”`, b.zc - b.h / 2, b.zc + b.h / 2]);
-  for (const [kind, u0, u1, oz0, oz1] of (s.open && OPENINGS[s.open]) || []) things.push([u0, u1, `the ${kind}`, kind === "door" ? 0 : oz0, oz1]);
+  for (const [kind, u0, u1, oz0, oz1] of (s.open && openings(s.open)) || []) things.push([u0, u1, `the ${kind}`, kind === "door" ? 0 : oz0, oz1]);
   let L = [a.u, "the wall end"], Rr = [s.len - (a.u + a.w), "the wall end"];
   for (const [u0, u1, name, t0, t1] of things) {
     if (t1 <= z0 || t0 >= z1) continue;
@@ -1132,7 +1292,7 @@ function describe({ d, P }) {
   if (info.type === "wall") {
     const s = SURF[info.key], corner = cornerOf(s);
     const u = clampN((P.x - s.o[0]) * s.r[0] + (P.y - s.o[1]) * s.r[1], 0, s.len), z = clampN(P.z, 0, CEIL);
-    const ops = [...OPENINGS[info.key]].sort((a, b) => a[1] - b[1]);
+    const ops = [...openings(info.key)].sort((a, b) => a[1] - b[1]);
     const op = !plan && ops.find(o => u >= o[1] - 0.02 && u <= o[2] + 0.02 && z <= o[4] + 0.01 && (o[0] === "door" || z >= o[3] - 0.01));
     if (op) {
       const [kind, u0, u1, z0, z1] = op;
@@ -1167,6 +1327,8 @@ function describe({ d, P }) {
       rows: [["To the west wall", cmT(x)], ["To the east wall", cmT(W - x)], ["To the south wall", cmT(y)], ["To the north wall", cmT(L - y)],
              ["Room", `${fmt(W)} × ${fmt(L)} cm · 178,95 m²`]] };
   }
+  if (info.type === "vitrine") return { kind: "Display case", title: `Vitrine by the ${info.wall.toLowerCase()}`, big: `${fmt(info.w)} × ${fmt(info.d)} cm`,
+    rows: [["Height", "90 cm"], ["Glass case", "70 – 88 cm high"]], note: "From the elevation drawings. It blocks mobile walls and walking." };
   if (info.type === "ceiling") return { kind: "Ceiling", title: "Suspended ceiling", big: `${cmT(CEIL)} high`, rows: [] };
   return { kind: "Scale figure", title: "Visitor", big: "170 cm tall", rows: [["Eye height", "about 160 cm"]] };
 }
@@ -1515,7 +1677,7 @@ function artChip(a) {
   return `<span class="chip ${a.level === "warn" ? "warn" : "hung"}">${esc(a.wall.includes("_") ? a.wall.split("_")[0] + " " + surfaces()[a.wall]?.letter : a.wall)}</span>` + (a.sizeGuessed ? `<span class="chip warn">size?</span>` : "");
 }
 function artMeta(a) { return `${fmt(a.w)} × ${fmt(a.h)} cm` + (a.artist ? ` · ${esc(a.artist)}` : ""); }
-function thumbHtml(a) { return a.url ? `<img src="${a.url}" alt="">` : `<span class="ph">no<br>image</span>`; }
+function thumbHtml(a) { return (a.url || a.thumb) ? `<img src="${a.url || a.thumb}" alt="">` : `<span class="ph">no<br>image</span>`; }
 function wallOptions(sel) {
   const S = surfaces();
   return `<option value="">Not hung (list only)</option>` + Object.values(S).map(s => `<option value="${s.id}"${s.id === sel ? " selected" : ""}>${esc(s.name)} · ${cm(s.len)} cm</option>`).join("");
@@ -1531,8 +1693,8 @@ function refreshArtList() {
   }
   const shown = arts.filter(a => ui.filter === "all" || a === selArt || (ui.filter === "todo" ? !a.wall : ui.filter === "hung" ? !!a.wall : a.level !== "ok"));
   if (!arts.length) {
-    artList.innerHTML = `<div class="empty">No artworks yet. Add pictures or a list above, or <button class="btn link" id="sampleBtn">load the example list</button> to try it out.</div>`;
-    document.getElementById("sampleBtn").addEventListener("click", () => { applyRows(parseDelimited(SAMPLE_CSV), "Example list"); });
+    artList.innerHTML = `<div class="empty">No artworks yet. Add pictures or a list above, or <button class="btn link" id="sampleBtn">place the empty frames from the elevation drawings</button>.</div>`;
+    document.getElementById("sampleBtn").addEventListener("click", loadFrameLayout);
     return;
   }
   if (!shown.length) { artList.innerHTML = `<div class="empty">Nothing in this filter.</div>`; return; }
@@ -1565,6 +1727,10 @@ function artEditor(a) {
       <label>Height cm<input type="number" step="0.5" min="1" id="e-h-${id}" value="${fmt(a.h).replace(",", ".")}"></label>
       <label>Depth cm<input type="number" step="0.5" min="0.5" id="e-d-${id}" value="${fmt(a.d).replace(",", ".")}"></label>
     </div>
+    ${a.hasImg ? "" : `<div class="fields two">
+      <label>Look (no picture yet)<select id="e-style-${id}">${ART_STYLES.map(([k, t]) => `<option value="${k}"${(a.style || "work") === k ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+      ${(a.style === "panel") ? `<label>Colour<span class="hexrow"><input type="color" id="e-colorpick-${id}" value="${esc(a.color || "#E5C5C8")}"><input type="text" id="e-color-${id}" value="${esc((a.color || "#E5C5C8").toUpperCase())}" maxlength="7"></span></label>` : ""}
+    </div>`}
     <label class="lockrow"><input type="checkbox" id="e-lock-${id}"${a.lock ? " checked" : ""}> Keep proportions when resizing${a.hasImg ? " (picture is " + (a.aspect >= 1 ? "landscape" : "portrait") + ")" : ""}</label>
     <div class="fields">
       <label class="span3">Wall<select id="e-wall-${id}">${wallOptions(a.wall)}</select></label>
@@ -1618,6 +1784,8 @@ artList.addEventListener("change", e => {
   const f = m[1], v = e.target.value;
   if (f === "title") { a.title = v.trim() || "Untitled"; if (!a.hasImg) setArtTexture(a); commitArt(a, true); return; }
   if (f === "artist" || f === "inv" || f === "note") { a[f] = v.trim(); commitArt(a); return; }
+  if (f === "style") { a.style = v; if (v === "panel" && !a.color) a.color = "#E5C5C8"; setArtTexture(a); commitArt(a, true); return; }
+  if (f === "color" || f === "colorpick") { const h = normHex(v); if (!h) { say("Use a colour like #E5C5C8"); return; } a.color = h; setArtTexture(a); commitArt(a, true); return; }
   if (f === "lock") { a.lock = e.target.checked; if (a.lock && a.hasImg) { a.h = a.w / a.aspect; } commitArt(a); return; }
   if (f === "wall") {
     const S = surfaces();
@@ -1730,6 +1898,7 @@ addEventListener("pointercancel", endListDrag);
 // file pickers + page-wide drop
 document.getElementById("addImgBtn").addEventListener("click", () => document.getElementById("imgInput").click());
 document.getElementById("addSheetBtn").addEventListener("click", () => document.getElementById("sheetInput").click());
+document.getElementById("frameLayoutBtn").addEventListener("click", loadFrameLayout);
 document.getElementById("imgInput").addEventListener("change", e => { const f = [...e.target.files]; e.target.value = ""; importFiles(f); });
 document.getElementById("sheetInput").addEventListener("change", e => { const f = [...e.target.files]; e.target.value = ""; importFiles(f); });
 const dropcover = document.getElementById("dropcover");
@@ -1825,6 +1994,40 @@ sheetToggle.addEventListener("click", () => {
 
 for (const id of ["orbit", "plan", "walk"]) document.getElementById("v-" + id).addEventListener("click", () => setMode(id));
 document.getElementById("walkFrom").addEventListener("change", e => { startWalk(e.target.value); canvas.focus(); });
+
+// windows + colours (Walls tab)
+const normHex = v => { let h = String(v || "").trim().replace(/^#/, ""); if (/^[0-9a-f]{3}$/i.test(h)) h = h.split("").map(c => c + c).join(""); return /^[0-9a-f]{6}$/i.test(h) ? "#" + h.toUpperCase() : null; };
+function renderWindowList() {
+  const el = document.getElementById("winList"); el.innerHTML = "";
+  for (const key of ["E", "W", "N", "S"]) (OPENINGS[key] || []).forEach((o, i) => {
+    if (o[0] !== "window") return;
+    const id = key + (i + 1), lab = document.createElement("label");
+    lab.innerHTML = `<input type="checkbox" id="win-${id}"${opts.covered[id] ? " checked" : ""}> Cover ${SURF[key].name.toLowerCase()} ${OPENING_NAMES[key][i]} <span class="art-meta" style="display:inline">${cm(o[1])}–${cm(o[2])} cm</span>`;
+    lab.querySelector("input").addEventListener("change", e => {
+      opts.covered[id] = e.target.checked; save();
+      buildWalls(); evaluateArts(); refreshArtList(); applyOrbit && mode === "orbit" && applyOrbit();
+      say(e.target.checked ? "Window covered – the wall is plain there now" : "Window opened again");
+    });
+    el.appendChild(lab);
+  });
+}
+function renderColorList() {
+  const el = document.getElementById("colorList"); el.innerHTML = "";
+  for (const [k, label] of COLOR_LABELS) {
+    const name = document.createElement("span"); name.textContent = label;
+    const row = document.createElement("span"); row.className = "hexrow";
+    row.innerHTML = `<input type="color" id="col-pick-${k}" value="${colorOf(k)}" aria-label="${label} colour"><input type="text" id="col-hex-${k}" value="${colorOf(k)}" maxlength="7" aria-label="${label} hex code">`;
+    const [pick, hex] = row.querySelectorAll("input");
+    const set = v => { const h = normHex(v); if (!h) { say("Use a hex colour like #F7F3EE"); hex.value = colorOf(k); return; }
+      opts.colors[k] = h; pick.value = h; hex.value = h; applyColors(); save(); };
+    pick.addEventListener("input", () => { hex.value = pick.value.toUpperCase(); opts.colors[k] = hex.value; applyColors(); });
+    pick.addEventListener("change", () => set(pick.value));
+    hex.addEventListener("change", () => set(hex.value));
+    el.append(name, row);
+  }
+}
+document.getElementById("resetColors").addEventListener("click", () => { opts.colors = {}; applyColors(); save(); renderColorList(); say("Colours are back to the drawings"); });
+renderWindowList(); renderColorList(); applyColors();
 
 function refreshAll() { evaluate(); evaluateArts(); refreshRows(); refreshArtList(); }
 
