@@ -289,6 +289,7 @@ button{cursor:pointer}
           <label><input type="checkbox" id="optSnap" checked> Snap walls to 5 cm and 15°, artworks to 1 cm</label>
           <label><input type="checkbox" id="optDry"> Let me move the drywalls too</label>
           <label><input type="checkbox" id="optLabels" checked> Show wall labels</label>
+          <label><input type="checkbox" id="optVisitor" checked> Show the 170 cm visitor (drag to move, R turns)</label>
         </div>
         <div class="actions">
           <button class="btn primary" id="copyBtn">Copy wall positions</button>
@@ -397,7 +398,8 @@ const vitObb = v => ({ cx: v.cx, cy: v.cy, hx: v.w / 2, hy: v.d / 2, ang: v.ang 
 // Persistence (this browser only): layout + list in localStorage, images in IndexedDB
 // ---------------------------------------------------------------------------
 const KEY = "vasarely-room6-layout-v1", ART_KEY = "vasarely-room6-art-v1", UI_KEY = "vasarely-room6-ui-v1";
-const opts = { snap: true, dry: false, labels: true, centre: 150, slide: false, covered: { ...DEFAULT_COVERED }, colors: {} };
+const DEFAULT_VISITOR = { show: true, x: 2.4, y: 6.0, ang: -Math.PI / 2 };
+const opts = { snap: true, dry: false, labels: true, centre: 150, slide: false, covered: { ...DEFAULT_COVERED }, colors: {}, visitor: { ...DEFAULT_VISITOR } };
 const ui = { tab: "art", filter: "all" };
 function load() {
   try {
@@ -613,6 +615,55 @@ function buildWalls() {
   TAG = null;
 }
 buildWalls();
+
+// visitor figure, 170 cm, for scale -------------------------------------------
+const visitor = new THREE.Group(); scene.add(visitor);
+{
+  const M = c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 });
+  const skin = M(0xc99a7c), shirt = M(0x5f7489), trousers = M(0x2f343c), shoes = M(0x1c1c1c), hair = M(0x3b2b22);
+  const add = (geo, mat, x, y, z, sx = 1, sy = 1, sz = 1) => {
+    const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.scale.set(sx, sy, sz);
+    m.castShadow = true; m.receiveShadow = true; m.userData.visitor = true; visitor.add(m); return m;
+  };
+  const up = new THREE.Vector3(0, 1, 0);
+  const seg = (a, b, rA, rB, mat) => {   // tapered limb from a to b, rounded at both ends
+    const d = new THREE.Vector3().subVectors(b, a), len = d.length();
+    const m = add(new THREE.CylinderGeometry(rB, rA, len, 16), mat, (a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
+    m.quaternion.setFromUnitVectors(up, d.normalize());
+    add(new THREE.SphereGeometry(rA, 16, 12), mat, a.x, a.y, a.z);
+    add(new THREE.SphereGeometry(rB, 16, 12), mat, b.x, b.y, b.z);
+  };
+  const v = (x, y, z) => new THREE.Vector3(x, y, z);
+  for (const sd of [-1, 1]) {
+    seg(v(sd * 0.095, 0.92, 0), v(sd * 0.1, 0.5, 0.01), 0.075, 0.058, trousers);        // thigh
+    seg(v(sd * 0.1, 0.5, 0.01), v(sd * 0.1, 0.1, -0.01), 0.056, 0.045, trousers);        // shin
+    add(new THREE.BoxGeometry(0.1, 0.075, 0.27), shoes, sd * 0.1, 0.0375, 0.05);           // shoe
+    seg(v(sd * 0.215, 1.39, 0), v(sd * 0.25, 1.11, -0.02), 0.052, 0.043, shirt);          // upper arm
+    seg(v(sd * 0.25, 1.11, -0.02), v(sd * 0.26, 0.87, 0.03), 0.041, 0.034, shirt);        // forearm
+    add(new THREE.SphereGeometry(0.045, 14, 10), skin, sd * 0.262, 0.81, 0.035, 0.8, 1.35, 0.9);   // hand
+  }
+  add(new THREE.CapsuleGeometry(0.115, 0.12, 8, 16), trousers, 0, 0.94, 0, 1, 1, 0.75).rotation.z = Math.PI / 2;   // hips
+  add(new THREE.CylinderGeometry(0.175, 0.15, 0.46, 20), shirt, 0, 1.17, 0, 1, 1, 0.62);                         // torso
+  add(new THREE.CapsuleGeometry(0.075, 0.28, 8, 16), shirt, 0, 1.385, 0, 1, 1, 0.85).rotation.z = Math.PI / 2;   // shoulders
+  add(new THREE.CylinderGeometry(0.046, 0.05, 0.1, 14), skin, 0, 1.47, 0);                                       // neck
+  add(new THREE.SphereGeometry(0.1, 24, 18), skin, 0, 1.585, 0.005, 0.88, 1.12, 1);                               // head
+  add(new THREE.ConeGeometry(0.017, 0.04, 10), skin, 0, 1.575, 0.105).rotation.x = Math.PI / 2;                  // nose (shows which way it faces)
+  add(new THREE.SphereGeometry(0.106, 24, 14, 0, Math.PI * 2, 0, Math.PI * 0.55), hair, 0, 1.6, -0.008, 0.92, 1.05, 1.02).rotation.x = -0.45;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(0.34, 0.38, 48), new THREE.MeshBasicMaterial({ color: 0x2447c8, side: THREE.DoubleSide }));
+  ring.rotation.x = -Math.PI / 2; ring.position.y = 0.006; ring.visible = false; visitor.add(ring);
+  visitor.userData.ring = ring;
+}
+function placeVisitor() {
+  const o = opts.visitor;
+  visitor.visible = !!o.show;
+  visitor.position.copy(toV(o.x, o.y, 0)); visitor.rotation.y = o.ang;
+}
+let visitorSel = false;
+function selectVisitor(on) {
+  visitorSel = !!on && opts.visitor.show;
+  visitor.userData.ring.visible = visitorSel;
+}
+placeVisitor();
 
 // display cases --------------------------------------------------------------
 const vitGroup = new THREE.Group(); scene.add(vitGroup);
@@ -1301,6 +1352,7 @@ function pick(x, y) {
   if (!hit) return null;
   if (hit.d.art) return { kind: "art", a: hit.d.art };
   if (hit.d.vit) return mode !== "walk" ? { kind: "vit", v: hit.d.vit } : null;
+  if (hit.d.visitor) return mode !== "walk" ? { kind: "visitor" } : null;
   const p = hit.d.part;
   return p && (p.mobile || opts.dry) && mode !== "walk" ? { kind: "part", p } : null;
 }
@@ -1376,7 +1428,7 @@ function probe(x, y) {
     const o = h.object;
     if (o === handle || o.isSprite || o.isLine || !visibleDeep(o)) continue;
     const d = o.userData;
-    if (d.art || d.part || d.vit || d.info) return { d, P: { x: h.point.x, y: -h.point.z, z: h.point.y } };
+    if (d.art || d.part || d.vit || d.visitor || d.info) return { d, P: { x: h.point.x, y: -h.point.z, z: h.point.y } };
   }
   return null;
 }
@@ -1409,6 +1461,13 @@ function describe({ d, P }) {
     }
     for (const [lvl, t] of a.issues || []) rows.push([lvl === "err" ? "⚠ Problem" : "Check", esc(t)]);
     return { kind: "Artwork", title: esc(a.title), big: `${fmt(a.w)} × ${fmt(a.h)} cm`, rows, note: "Drag it to move it · the blue corner dot resizes it" };
+  }
+  if (d.visitor) {
+    const o = opts.visitor, fx = Math.sin(o.ang), fy = -Math.cos(o.ang);
+    const facing = Math.abs(fx) > Math.abs(fy) ? (fx > 0 ? "east" : "west") : (fy > 0 ? "north" : "south");
+    return { kind: "Scale figure", title: "Visitor", big: "170 cm tall",
+      rows: [["Eye height", "about 160 cm"], ["Shoulders", "about 140 cm"], ["Standing at", `X ${cm(o.x)} · Y ${cm(o.y)} cm`], ["Facing", facing]],
+      note: "Drag to move · R turns 45° · hide it in the Walls tab" };
   }
   if (d.vit) {
     const v = d.vit, rows = [["Height", cmT(v.h)], ["Glass case", `${fmt(Math.max(0.1, v.h - 0.2))} – ${cmT(v.h - 0.02)} high`],
@@ -1537,6 +1596,13 @@ canvas.addEventListener("pointerdown", e => {
     canvas.style.cursor = "grabbing";
     return;
   }
+  if (h && h.kind === "visitor") {
+    selectPart(null); selectArt(null); selectVit(null); selectVisitor(true);
+    const g = groundAt(e.clientX, e.clientY), o = opts.visitor;
+    gesture = { type: "pdrag", ox: o.x - (g ? g.x : o.x), oy: o.y - (g ? g.y : o.y), ...base };
+    canvas.style.cursor = "grabbing";
+    return;
+  }
   if (h && h.kind === "vit") {
     const v = h.v; selectVit(v);
     const g = groundAt(e.clientX, e.clientY);
@@ -1588,6 +1654,13 @@ canvas.addEventListener("pointermove", e => {
     p.cy = Math.min(L, Math.max(0, snapV(g.y + gesture.oy, 0.05)));
     placePart(p); evaluate(); evaluateArts(); refreshRows();
     showReadout(e.clientX, e.clientY, `${p.id}  X ${cm(p.cx)}  Y ${cm(p.cy)} cm`);
+  } else if (gesture.type === "pdrag") {
+    const g = groundAt(e.clientX, e.clientY); if (!g) return;
+    const o = opts.visitor;
+    o.x = Math.min(W - 0.2, Math.max(0.2, snapV(g.x + gesture.ox, 0.05)));
+    o.y = Math.min(L - 0.2, Math.max(0.2, snapV(g.y + gesture.oy, 0.05)));
+    placeVisitor();
+    showReadout(e.clientX, e.clientY, `Visitor  X ${cm(o.x)}  Y ${cm(o.y)} cm`);
   } else if (gesture.type === "vdrag") {
     const g = groundAt(e.clientX, e.clientY); if (!g) return;
     const v = gesture.v;
@@ -1625,13 +1698,13 @@ function endPointer(e) {
   if (!gesture) return;
   if (gesture.type === "pinch") { if (pointers.size === 0) gesture = null; return; }
   if (gesture.type === "drag" && gesture.moved) { save(); saveArts(); }
-  if (gesture.type === "vdrag" && gesture.moved) save();
+  if ((gesture.type === "vdrag" || gesture.type === "pdrag") && gesture.moved) save();
   if ((gesture.type === "art" || gesture.type === "resize") && gesture.moved) { saveArts(); refreshArtList(); }
-  if ((gesture.type === "orbit" || gesture.type === "pan") && !gesture.moved) { selectPart(null); selectArt(null); selectVit(null); }
+  if ((gesture.type === "orbit" || gesture.type === "pan") && !gesture.moved) { selectPart(null); selectArt(null); selectVit(null); selectVisitor(false); }
   const g = gesture;
   gesture = null; readout.hidden = true; canvas.style.cursor = "";
   if (g.type === "look" && locked) { const r = canvas.getBoundingClientRect(); if (!g.moved) showInfo(r.left + r.width / 2, r.top + r.height / 2); }
-  else if (!g.moved || g.type === "art" || g.type === "drag" || g.type === "vdrag" || g.type === "resize") showInfo(e.clientX, e.clientY);
+  else if (!g.moved || g.type === "art" || g.type === "drag" || g.type === "vdrag" || g.type === "pdrag" || g.type === "resize") showInfo(e.clientX, e.clientY);
 }
 canvas.addEventListener("pointerup", endPointer);
 canvas.addEventListener("pointercancel", endPointer);
@@ -1682,6 +1755,13 @@ addEventListener("keydown", e => {
   }
   if (mode === "walk") {
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"].includes(k)) { keys.add(k); if (k.startsWith("arrow")) e.preventDefault(); }
+    return;
+  }
+  if (visitorSel && mode !== "walk") {
+    const o = opts.visitor, st = e.shiftKey ? 0.5 : 0.1, mv = { arrowleft: [-st, 0], arrowright: [st, 0], arrowup: [0, st], arrowdown: [0, -st] }[k];
+    if (mv) { e.preventDefault(); o.x = Math.min(W - 0.2, Math.max(0.2, o.x + mv[0])); o.y = Math.min(L - 0.2, Math.max(0.2, o.y + mv[1])); placeVisitor(); save(); }
+    else if (k === "r") { o.ang += (e.shiftKey ? -1 : 1) * Math.PI / 4; placeVisitor(); save(); }
+    else if (k === "escape") selectVisitor(false);
     return;
   }
   if (selVit) {
@@ -1818,6 +1898,7 @@ function refreshRows() {
   }
 }
 function selectPart(p) {
+  if (p) selectVisitor(false);
   selPart = p;
   if (p) { selVit = null; for (const v of vits) if (v.obj) v.obj.edges.visible = false; refreshVitRows(); }
   if (p) { selArt = null; handle.visible = false; for (const a of arts) if (a.obj) a.obj.edges.visible = false; refreshArtList(); }
@@ -1826,6 +1907,7 @@ function selectPart(p) {
   if (p && rows[p.id] && !gesture) { setTab("walls"); rows[p.id].el.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
 }
 function selectArt(a) {
+  if (a) selectVisitor(false);
   const changed = selArt !== a;
   selArt = a;
   if (a) { selPart = null; selVit = null; for (const v of vits) if (v.obj) v.obj.edges.visible = false; refreshVitRows();
@@ -2153,6 +2235,9 @@ optLabels.addEventListener("change", () => {
 });
 floorLabels.visible = opts.labels;
 for (const p of parts) p.obj.sprite.visible = opts.labels;
+const optVisitor = document.getElementById("optVisitor");
+optVisitor.checked = opts.visitor.show;
+optVisitor.addEventListener("change", () => { opts.visitor.show = optVisitor.checked; if (!optVisitor.checked) selectVisitor(false); placeVisitor(); save(); });
 
 const panel = document.getElementById("panel"), sheetToggle = document.getElementById("sheetToggle");
 sheetToggle.addEventListener("click", () => {
@@ -2177,6 +2262,7 @@ function rotateVit(v, dg) {
   v.ang = a; commitVit(v);
 }
 function selectVit(v) {
+  if (v) selectVisitor(false);
   selVit = v;
   if (v) {
     selPart = null; selArt = null; handle.visible = false;
@@ -2305,7 +2391,7 @@ async function snapshot(name) {
   return { format: LAYOUT_FORMAT, version: 1, name, savedAt: new Date().toISOString(),
     walls: Object.fromEntries(parts.map(p => [p.id, { cx: p.cx, cy: p.cy, ang: p.ang }])),
     vitrines: vits.map(({ id, cx, cy, ang, w, d, h }) => ({ id, cx, cy, ang, w, d, h })),
-    covered: { ...opts.covered }, colors: { ...opts.colors }, westSet: opts.westSet || "1002p1", artworks };
+    covered: { ...opts.covered }, colors: { ...opts.colors }, westSet: opts.westSet || "1002p1", visitor: { ...opts.visitor }, artworks };
 }
 async function applyLayout(lay) {
   if (!lay || lay.format !== LAYOUT_FORMAT) throw new Error("this is not a Room 6 layout file");
@@ -2313,6 +2399,8 @@ async function applyLayout(lay) {
   for (const v of vits) removeVit(v);
   vits = Array.isArray(lay.vitrines) ? lay.vitrines.map(v => ({ ...v })) : DEFAULT_VITS(); vits.forEach(buildVit);
   opts.covered = { ...(lay.covered || DEFAULT_COVERED) }; opts.colors = { ...(lay.colors || {}) }; opts.westSet = lay.westSet || "1002p1";
+  opts.visitor = { ...DEFAULT_VISITOR, ...(lay.visitor || {}) }; placeVisitor(); selectVisitor(false);
+  document.getElementById("optVisitor").checked = opts.visitor.show;
   for (const a of [...arts]) { removeArtObj(a); if (a.url) URL.revokeObjectURL(a.url); }
   arts = []; selArt = null; selVit = null; selPart = null; handle.visible = false;
   await idb.clear();
