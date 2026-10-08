@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Vasarely Room 6 Planner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -62,7 +63,7 @@ button{cursor:pointer}
 .tabs button{border:0;background:none;padding:6px 12px;border-radius:6px;font-weight:600;font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
 .tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .tabs .count{font:11px var(--mono);color:var(--muted)}
-.hide-ui{border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:3px 10px;font-size:12px;white-space:nowrap}
+.hide-ui{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:7px;padding:5px 10px;font-size:12.5px;font-weight:600;white-space:nowrap}
 .corner{position:absolute;top:12px;right:16px;display:flex;gap:6px;z-index:4}
 .corner button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:7px 12px;font-weight:600;box-shadow:var(--shadow);color:var(--ink)}
 .corner button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
@@ -217,7 +218,7 @@ button{cursor:pointer}
         <button role="tab" id="t-walls" aria-selected="false" aria-controls="p-walls">Walls</button>
         <button role="tab" id="t-lay" aria-selected="false" aria-controls="p-lay">Layouts</button>
       </div>
-      <span style="display:flex;gap:6px"><button class="hide-ui" id="hideUi" title="Hide the menu (M)">Hide menu</button>
+      <span style="display:flex;gap:6px"><button class="hide-ui" id="hideUi" title="Hide the menu (M)">✕ Hide menu</button>
       <button class="sheet-toggle" id="sheetToggle" aria-expanded="false">Show</button></span>
     </div>
     <div class="panel-body">
