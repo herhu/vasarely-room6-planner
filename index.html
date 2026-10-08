@@ -102,6 +102,11 @@ button{cursor:pointer}
 .opts label{display:flex;gap:8px;align-items:center;font-size:13px}
 .opts input[type="checkbox"]{accent-color:var(--accent)}
 .opts input[type="number"]{width:64px;border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:3px 6px;font:13px var(--mono)}
+.opts.first{border-top:0;padding-top:0}
+.saverow{display:flex;gap:6px}
+.saverow input{flex:1;min-width:0;border:1px solid var(--line);background:var(--panel-2);border-radius:7px;padding:5px 8px;color:var(--ink)}
+.layrow{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;flex-wrap:wrap}
+.layrow .wall-name{min-width:120px}
 .sub{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
 .winlist{display:flex;flex-direction:column;gap:6px}
 .colors{display:grid;grid-template-columns:1fr auto;gap:6px 10px;align-items:center;font-size:13px}
@@ -204,6 +209,7 @@ button{cursor:pointer}
       <div class="tabs" role="tablist">
         <button role="tab" id="t-art" aria-selected="true" aria-controls="p-art">Artworks <span class="count" id="artCount">0</span></button>
         <button role="tab" id="t-walls" aria-selected="false" aria-controls="p-walls">Walls</button>
+        <button role="tab" id="t-lay" aria-selected="false" aria-controls="p-lay">Layouts</button>
       </div>
       <button class="sheet-toggle" id="sheetToggle" aria-expanded="false">Show</button>
     </div>
@@ -241,9 +247,34 @@ button{cursor:pointer}
         <textarea class="copyOut" id="copyArtOut" readonly hidden aria-label="Hanging list as text"></textarea>
       </section>
 
+      <section class="tabpane" id="p-lay" role="tabpanel" aria-labelledby="t-lay" hidden>
+        <div class="opts first">
+          <h3 class="sub">Options from the drawings</h3>
+          <p class="legend">Switch between the options in the elevation PDFs. This only moves walls and the frames placed from the drawings; your own pictures stay where they are.</p>
+          <span class="field">4 m mobile wall (MOB4)</span>
+          <div class="filter" id="presetWalls"></div>
+          <span class="field">West wall frames</span>
+          <div class="filter" id="presetWest"></div>
+        </div>
+        <div class="opts">
+          <h3 class="sub">My layouts</h3>
+          <p class="legend">A layout keeps everything: walls, display cases, covered windows, colours, and artworks with their pictures. Saved layouts stay in this browser. To send one to someone, download the file; they open this page and load it.</p>
+          <div class="saverow"><input type="text" id="layName" placeholder="Name, e.g. Option A" aria-label="Layout name"><button class="btn primary" id="laySave">Save layout</button></div>
+          <div id="layList" class="walls"></div>
+          <div class="actions"><button class="btn" id="layExport">Download current layout</button><button class="btn" id="layImport">Load layout file</button></div>
+          <input type="file" id="layInput" accept=".json,application/json" hidden>
+        </div>
+      </section>
+
       <section class="tabpane" id="p-walls" role="tabpanel" aria-labelledby="t-walls" hidden>
         <p class="legend"><b>White</b> mobile walls can be dragged in the 3D or Plan view. <b>Pink</b> drywalls are fixed. Positions are the wall's centre, measured in cm from the <b>west</b> wall (X) and the <b>south</b> wall (Y). 0° runs west–east, 90° runs south–north. Artworks hung on a mobile wall move with it.</p>
         <div class="walls" id="walls"></div>
+        <div class="opts">
+          <h3 class="sub">Display cases</h3>
+          <p class="legend">Drag a case in the 3D or Plan view, or type its size and position here. R rotates the selected case.</p>
+          <div id="vitList" class="walls"></div>
+          <div class="actions"><button class="btn" id="addVit">Add display case</button><button class="btn" id="resetVits">Reset cases to the drawings</button></div>
+        </div>
         <div class="opts">
           <h3 class="sub">Windows</h3>
           <p class="legend">The drawings show two windows covered. Tick a window to cover it with plain wall; you can then hang on that spot.</p>
@@ -273,7 +304,7 @@ button{cursor:pointer}
   <div class="info" id="info" role="dialog" aria-label="Measurements" hidden></div>
   <div class="toast" id="toast" role="status" hidden></div>
   <div class="ghost" id="ghost" hidden></div>
-  <div class="dropcover" id="dropcover" hidden><span>Drop to add to the artwork list</span></div>
+  <div class="dropcover" id="dropcover" hidden><span>Drop pictures, a list, or a layout file</span></div>
   <div class="walkpad" id="walkpad" hidden>
     <button class="up" data-k="f" aria-label="Walk forward">▲</button>
     <button class="left" data-k="l" aria-label="Step left">◀</button>
@@ -347,6 +378,21 @@ const OBSTACLES = [
   { name: "room 5 door (keep 1 m clear)", cx: W - (1.78 + 4.28) / 2, cy: 0.5, hx: 1.25, hy: 0.5, ang: 0, level: "warn" },
 ];
 
+// display cases from the elevation drawings: [wall, u0, u1, off0, off1]; they can be moved and resized
+const VITRINES = [
+  ["E", 6.45, 7.65, BENCH_D + 0.03, BENCH_D + 0.63], ["E", 12.15, 13.35, BENCH_D + 0.03, BENCH_D + 0.63],
+  ["W", 2.13, 3.33, BENCH_D + 0.03, BENCH_D + 0.63], ["W", 12.48, 13.68, BENCH_D + 0.03, BENCH_D + 0.63],
+  ["S", 10.72, 11.32, 0.05, 1.25],
+];
+function vitFromWall([key, u0, u1, f0, f1], i) {
+  const s = SURF[key], uc = (u0 + u1) / 2, oc = (f0 + f1) / 2;
+  return { id: "V" + (i + 1), cx: s.o[0] + s.r[0] * uc + s.n[0] * oc, cy: s.o[1] + s.r[1] * uc + s.n[1] * oc,
+           ang: ((Math.atan2(s.r[1], s.r[0]) % Math.PI) + Math.PI) % Math.PI, w: u1 - u0, d: f1 - f0, h: 0.9 };
+}
+const DEFAULT_VITS = () => VITRINES.map(vitFromWall);
+let vits = DEFAULT_VITS();
+const vitObb = v => ({ cx: v.cx, cy: v.cy, hx: v.w / 2, hy: v.d / 2, ang: v.ang });
+
 // ---------------------------------------------------------------------------
 // Persistence (this browser only): layout + list in localStorage, images in IndexedDB
 // ---------------------------------------------------------------------------
@@ -359,6 +405,7 @@ function load() {
     if (s) {
       for (const p of parts) if (s.parts && s.parts[p.id]) Object.assign(p, s.parts[p.id]);
       Object.assign(opts, s.opts || {});
+      if (Array.isArray(s.vits)) vits = s.vits.map(v => ({ ...v }));
     }
   } catch (e) {}
   try { Object.assign(ui, JSON.parse(localStorage.getItem(UI_KEY) || "{}")); } catch (e) {}
@@ -366,7 +413,8 @@ function load() {
 function save() {
   try {
     localStorage.setItem(KEY, JSON.stringify({
-      parts: Object.fromEntries(parts.map(p => [p.id, { cx: p.cx, cy: p.cy, ang: p.ang }])), opts }));
+      parts: Object.fromEntries(parts.map(p => [p.id, { cx: p.cx, cy: p.cy, ang: p.ang }])), opts,
+      vits: vits.map(({ id, cx, cy, ang, w, d, h }) => ({ id, cx, cy, ang, w, d, h })) }));
   } catch (e) {}
 }
 function saveUi() { try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) {} }
@@ -375,19 +423,23 @@ load();
 const idb = (() => {
   let dbp = null;
   const open = () => dbp || (dbp = new Promise((res, rej) => {
-    const r = indexedDB.open("vasarely-room6", 1);
-    r.onupgradeneeded = () => r.result.createObjectStore("img");
+    const r = indexedDB.open("vasarely-room6", 2);
+    r.onupgradeneeded = () => { for (const n of ["img", "layouts"]) if (!r.result.objectStoreNames.contains(n)) r.result.createObjectStore(n); };
     r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
   }));
-  const run = (mode, fn) => open().then(db => new Promise((res, rej) => {
-    const tx = db.transaction("img", mode), st = tx.objectStore("img"), req = fn(st);
+  const run = (store, mode, fn) => open().then(db => new Promise((res, rej) => {
+    const tx = db.transaction(store, mode), st = tx.objectStore(store), req = fn(st);
     tx.oncomplete = () => res(req && req.result); tx.onerror = () => rej(tx.error);
   }));
   return {
-    put: (k, v) => run("readwrite", s => s.put(v, k)).catch(() => {}),
-    get: k => run("readonly", s => s.get(k)).catch(() => null),
-    del: k => run("readwrite", s => s.delete(k)).catch(() => {}),
-    clear: () => run("readwrite", s => s.clear()).catch(() => {}),
+    put: (k, v) => run("img", "readwrite", s => s.put(v, k)).catch(() => {}),
+    get: k => run("img", "readonly", s => s.get(k)).catch(() => null),
+    del: k => run("img", "readwrite", s => s.delete(k)).catch(() => {}),
+    clear: () => run("img", "readwrite", s => s.clear()).catch(() => {}),
+    lput: (k, v) => run("layouts", "readwrite", s => s.put(v, k)),
+    lget: k => run("layouts", "readonly", s => s.get(k)).catch(() => null),
+    ldel: k => run("layouts", "readwrite", s => s.delete(k)).catch(() => {}),
+    lall: () => run("layouts", "readonly", s => s.getAll()).catch(() => []),
   };
 })();
 
@@ -562,24 +614,35 @@ function buildWalls() {
 }
 buildWalls();
 
-// display cases (vitrines) from the elevation drawings: [wall, u0, u1, off0, off1]
-const VITRINES = [
-  ["E", 6.45, 7.65, BENCH_D + 0.03, BENCH_D + 0.63], ["E", 12.15, 13.35, BENCH_D + 0.03, BENCH_D + 0.63],
-  ["W", 2.13, 3.33, BENCH_D + 0.03, BENCH_D + 0.63], ["W", 12.48, 13.68, BENCH_D + 0.03, BENCH_D + 0.63],
-  ["S", 10.72, 11.32, 0.05, 1.25],
-];
-for (const [key, u0, u1, f0, f1] of VITRINES) {
-  const s = SURF[key];
-  TAG = { type: "vitrine", w: Math.max(u1 - u0, f1 - f0), d: Math.min(u1 - u0, f1 - f0), wall: s.name };
-  const lg = 0.035;
-  for (const [a, b] of [[u0, u0 + lg], [u1 - lg, u1]]) for (const [c, d] of [[f0, f0 + lg], [f1 - lg, f1]]) surfBox(s, a, b, 0, 0.68, c, d, MAT.vitrine, room);
-  surfBox(s, u0, u1, 0.66, 0.70, f0, f1, MAT.vitrine, room);
-  surfBox(s, u0 + 0.01, u1 - 0.01, 0.70, 0.88, f0 + 0.01, f1 - 0.01, MAT.vglass, room);
-  surfBox(s, u0, u1, 0.88, 0.90, f0, f1, MAT.vitrine, room);
-  const uc = (u0 + u1) / 2, oc = (f0 + f1) / 2;
-  OBSTACLES.push({ name: "display case", cx: s.o[0] + s.r[0] * uc + s.n[0] * oc, cy: s.o[1] + s.r[1] * uc + s.n[1] * oc,
-                   hx: (u1 - u0) / 2, hy: (f1 - f0) / 2, ang: Math.atan2(s.r[1], s.r[0]), level: "err" });
+// display cases --------------------------------------------------------------
+const vitGroup = new THREE.Group(); scene.add(vitGroup);
+function removeVit(v) {
+  if (!v.obj) return;
+  vitGroup.remove(v.obj.g);
+  v.obj.g.traverse(o => { if (o.geometry) o.geometry.dispose(); });
+  v.obj.m.dispose(); v.obj = null;
 }
+function buildVit(v) {
+  const wasSel = v.obj && v.obj.edges.visible;
+  removeVit(v);
+  const g = new THREE.Group(), m = MAT.vitrine.clone();
+  const B = (x0, x1, z0, z1, y0, y1, mt) => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(x1 - x0, z1 - z0, y1 - y0), mt);
+    mesh.position.set((x0 + x1) / 2, (z0 + z1) / 2, (y0 + y1) / 2);
+    mesh.castShadow = mesh.receiveShadow = true; mesh.userData.vit = v; g.add(mesh);
+  };
+  const hw = v.w / 2, hd = v.d / 2, lg = 0.035, H = v.h, gl0 = Math.max(0.1, H - 0.20), b0 = gl0 - 0.04;
+  for (const x of [-hw, hw - lg]) for (const y of [-hd, hd - lg]) B(x, x + lg, 0, b0, y, y + lg, m);
+  B(-hw, hw, b0, gl0, -hd, hd, m);
+  B(-hw + 0.01, hw - 0.01, gl0, H - 0.02, -hd + 0.01, hd - 0.01, MAT.vglass);
+  B(-hw, hw, H - 0.02, H, -hd, hd, m);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(v.w, H, v.d)), new THREE.LineBasicMaterial({ color: 0x2447c8, depthTest: false }));
+  edges.position.y = H / 2; edges.renderOrder = 11; edges.visible = !!wasSel; g.add(edges);
+  v.obj = { g, m, edges };
+  vitGroup.add(g); placeVit(v);
+}
+function placeVit(v) { v.obj.g.position.copy(toV(v.cx, v.cy, 0)); v.obj.g.rotation.y = v.ang; }
+vits.forEach(buildVit);
 TAG = null;
 TAG = { type: "bench", side: "west" };
 box(BENCH_D / 2, L / 2, BENCH_H / 2, BENCH_D, L, BENCH_H, 0, MAT.bench, room);
@@ -692,9 +755,20 @@ function evaluate() {
     if (corners(b).some(([x, y]) => x < -0.005 || x > W + 0.005 || y < -0.005 || y > L + 0.005)) issues.push(["err", "goes through the outer wall"]);
     for (const o of OBSTACLES) if (overlap(b, o)) issues.push([o.level, o.level === "warn" ? `in front of the ${o.name}` : `hits the ${o.name}`]);
     for (const q of parts) if (q !== p && overlap(b, obbOf(q))) issues.push(["err", `hits ${q.id}`]);
+    for (const v of vits) if (overlap(b, vitObb(v))) issues.push(["err", `hits display case ${v.id}`]);
     p.issues = issues;
     p.level = issues.some(i => i[0] === "err") ? "err" : issues.length ? "warn" : "ok";
     p.obj.m.emissive.setHex(p.level === "err" ? 0x7a1010 : p.level === "warn" ? 0x5a3a00 : 0x000000);
+  }
+  for (const v of vits) {
+    const issues = [], b = vitObb(v);
+    if (corners(b).some(([x, y]) => x < -0.005 || x > W + 0.005 || y < -0.005 || y > L + 0.005)) issues.push(["err", "goes through the outer wall"]);
+    for (const o of OBSTACLES) if (overlap(b, o)) issues.push([o.level, o.level === "warn" ? `in front of the ${o.name}` : `hits the ${o.name}`]);
+    for (const p of parts) if (overlap(b, obbOf(p))) issues.push(["err", `hits ${p.id}`]);
+    for (const q of vits) if (q !== v && overlap(b, vitObb(q))) issues.push(["err", `hits display case ${q.id}`]);
+    v.issues = issues;
+    v.level = issues.some(i => i[0] === "err") ? "err" : issues.length ? "warn" : "ok";
+    if (v.obj) v.obj.m.emissive.setHex(v.level === "err" ? 0x7a1010 : v.level === "warn" ? 0x5a3a00 : 0x000000);
   }
 }
 
@@ -737,10 +811,10 @@ function placeholderTexture(a) {
   const c = document.createElement("canvas");
   c.width = ratio >= 1 ? 512 : Math.max(64, Math.round(512 * ratio)); c.height = ratio >= 1 ? Math.max(64, Math.round(512 / ratio)) : 512;
   const g = c.getContext("2d"), W2 = c.width, H2 = c.height, st = a.style || "work";
-  const writeTitle = (color, size, maxLines) => {
+  const writeTitle = (color, size, maxLines, str = a.title) => {
     g.fillStyle = color; g.textAlign = "center"; g.textBaseline = "middle";
     g.font = `600 ${size}px Archivo, system-ui, sans-serif`;
-    const words = a.title.split(/\s+/), lines = []; let line = "";
+    const words = str.split(/\s+/), lines = []; let line = "";
     for (const w of words) { const t = line ? line + " " + w : w; if (g.measureText(t).width > W2 - 40 && line) { lines.push(line); line = w; } else line = t; }
     if (line) lines.push(line);
     const shown = lines.slice(0, maxLines || Math.max(1, Math.floor((H2 - 20) / (size * 1.2))));
@@ -757,7 +831,7 @@ function placeholderTexture(a) {
     g.fillStyle = a.color || "#E5C5C8"; g.fillRect(0, 0, W2, H2);
   } else if (st === "text") {
     g.fillStyle = colorOf("wall"); g.fillRect(0, 0, W2, H2);
-    writeTitle("#3a3a3a", 34, 3);
+    writeTitle("#3a3a3a", 34, 4, a.text || a.title);
   } else {
     g.fillStyle = "#8f8a84"; g.fillRect(0, 0, W2, H2);
     g.strokeStyle = "rgba(255,255,255,.16)"; g.lineWidth = 2;
@@ -834,7 +908,7 @@ function saveArts() {
   try {
     localStorage.setItem(ART_KEY, JSON.stringify(arts.map(a => ({
       id: a.id, title: a.title, artist: a.artist, inv: a.inv, w: a.w, h: a.h, d: a.d, note: a.note, image: a.image,
-      hasImg: a.hasImg, aspect: a.aspect, lock: a.lock, wall: a.wall, u: a.u, zc: a.zc, sizeGuessed: a.sizeGuessed, style: a.style, color: a.color }))));
+      hasImg: a.hasImg, aspect: a.aspect, lock: a.lock, wall: a.wall, u: a.u, zc: a.zc, sizeGuessed: a.sizeGuessed, style: a.style, color: a.color, text: a.text, fromDrawing: a.fromDrawing }))));
   } catch (e) {
     say("This browser is out of storage space – the list will not be kept after a reload");
   }
@@ -854,35 +928,54 @@ async function loadArts() {
 
 // frame layout from the elevation drawings ------------------------------------
 // [wall, x0, x1, y0, y1 in drawing pixels, style, title, depth cm]; each drawing is 2000 px = the wall length
-const ELEV = { E: { len: L, H: 440, src: "CV_kiall_nezo_1001 p1" }, W: { len: L, H: 440, src: "CV_kiall_nezo_1002 p1" },
+const ELEV = { E: { len: L, H: 440, src: "CV_kiall_nezo_1001 p1" }, W: { len: L, H: 440 },
                N: { len: W, H: 547, src: "CV_kiall_nezo_1001 p4" }, S: { len: W, H: 553, src: "CV_kiall_nezo_1001 p2" } };
 const FRAME_LAYOUT = [
   ["E", 0, 157, 120, 285, "work", "Photo – portrait", 1], ["E", 428, 535, 120, 305, "panel", "Pink panel", 0.5],
   ["E", 632, 732, 180, 288, "frame"], ["E", 1088, 1188, 178, 288, "frame"], ["E", 1275, 1375, 178, 288, "frame"],
   ["E", 1460, 1567, 120, 305, "panel", "Pink panel", 0.5], ["E", 1623, 1723, 178, 288, "frame"], ["E", 1808, 1915, 175, 290, "frameDark"],
-  ["W", 71, 172, 180, 289, "frame"], ["W", 481, 586, 176, 289, "frame"], ["W", 646, 751, 176, 289, "frame"], ["W", 813, 913, 180, 289, "frame"],
-  ["W", 974, 1081, 119, 305, "panel", "Pink panel", 0.5], ["W", 1113, 1281, 136, 304, "work", "Large work (textile tableau)", 2],
-  ["W", 1342, 1447, 176, 289, "frame"], ["W", 1508, 1608, 179, 287, "frame"], ["W", 1844, 1944, 179, 287, "frame"],
   ["N", 75, 207, 148, 380, "panel", "Pink panel", 0.5], ["N", 255, 588, 90, 485, "work", "Large tapestry", 1.5],
   ["N", 676, 800, 224, 358, "frame"], ["N", 814, 938, 224, 358, "frame"], ["N", 1700, 1900, 220, 300, "text", "Kiállítás bevezető (intro text)", 0.2],
   ["S", 793, 927, 150, 383, "panel", "Pink panel", 0.5], ["S", 1003, 1320, 148, 437, "work", "Tapestry 1", 1.5],
   ["S", 1435, 1642, 146, 438, "work", "Tapestry 2", 1.5], ["S", 1758, 1884, 226, 362, "frame"],
 ];
-function loadFrameLayout() {
+const BIG_W = ["work", "Large work (textile tableau)", 2], PINK = ["panel", "Pink panel", 0.5];
+const WEST_SETS = {
+  "1002p1": { name: "1002 p1", src: "CV_kiall_nezo_1002 p1", items: [[71, 172, 180, 289], [481, 586, 176, 289], [646, 751, 176, 289], [813, 913, 180, 289],
+    [974, 1081, 119, 305, ...PINK], [1113, 1281, 136, 304, ...BIG_W], [1342, 1447, 176, 289], [1508, 1608, 179, 287], [1844, 1944, 179, 287]] },
+  "1002p2": { name: "1002 p2", src: "CV_kiall_nezo_1002 p2", items: [[71, 172, 180, 289], [498, 603, 176, 289], [613, 718, 176, 289], [730, 830, 180, 287],
+    [907, 1014, 119, 305, ...PINK], [1062, 1231, 136, 304, ...BIG_W], [1309, 1414, 176, 289], [1492, 1592, 179, 287], [1844, 1944, 179, 287]] },
+  "1001p3": { name: "1001 p3", src: "CV_kiall_nezo_1001 p3", items: [[71, 172, 180, 289], [484, 591, 119, 305, ...PINK], [626, 731, 176, 289], [796, 896, 180, 289],
+    [960, 1067, 119, 305, ...PINK], [1102, 1270, 136, 304, ...BIG_W], [1336, 1441, 176, 289], [1505, 1605, 179, 287], [1844, 1944, 179, 287]] },
+};
+const westItems = key => WEST_SETS[key].items.map(([x0, x1, y0, y1, style = "frame", title, depth]) => ["W", x0, x1, y0, y1, style, title, depth]);
+function placeDrawingItems(items, srcW) {
   const count = {};
   let n = 0;
-  for (const [wall, x0, x1, y0, y1, style, title, depth] of FRAME_LAYOUT) {
-    const e = ELEV[wall], k = e.len / 2000;
+  for (const [wall, x0, x1, y0, y1, style, title, depth] of items) {
+    const e = ELEV[wall], k = e.len / 2000, src = wall === "W" ? srcW : e.src;
     const zt = (e.H - y0) * k, zb = (e.H - y1) * k;
     count[wall + style] = (count[wall + style] || 0) + 1;
     const name = title ? `${title}${style === "panel" ? " " + wall + count[wall + style] : ""}` : `${style === "frameDark" ? "Black frame" : "Frame"} ${wall}${count[wall + style]}`;
     const a = newArt({ title: name, style, color: style === "panel" ? "#E5C5C8" : undefined, w: (x1 - x0) * k, h: zt - zb,
-      d: (depth || 3) / 100, wall, u: x0 * k, zc: (zt + zb) / 2, lock: true, sizeGuessed: style === "text",
-      note: `Position from elevation ${e.src}` + (style === "text" ? " – size not given" : "") });
+      d: (depth || 3) / 100, wall, u: x0 * k, zc: (zt + zb) / 2, lock: true, sizeGuessed: style === "text", fromDrawing: wall,
+      note: `Position from elevation ${src}` + (style === "text" ? " – size not given" : "") });
     setArtTexture(a); placeArt(a); n++;
   }
+  return n;
+}
+function loadFrameLayout() {
+  const key = WEST_SETS[opts.westSet] ? opts.westSet : "1002p1";
+  const n = placeDrawingItems([...FRAME_LAYOUT, ...westItems(key)], WEST_SETS[key].src);
   saveArts(); refreshAll();
   say(`${n} frames and panels placed from the elevation drawings`);
+}
+function applyWestSet(key) {
+  opts.westSet = key; save();
+  for (const a of arts.filter(x => x.fromDrawing === "W")) { removeArtObj(a); arts.splice(arts.indexOf(a), 1); if (selArt === a) { selArt = null; handle.visible = false; } }
+  const n = placeDrawingItems(westItems(key), WEST_SETS[key].src);
+  saveArts(); refreshAll(); renderPresets();
+  say(`West wall: ${n} frames and panels from ${WEST_SETS[key].name}`);
 }
 
 // images ---------------------------------------------------------------------
@@ -1073,6 +1166,12 @@ function applyRows(rows, label) {
 }
 async function importFiles(list, dropHit) {
   const files = [...list];
+  const layouts = files.filter(f => /\.json$/i.test(f.name));
+  if (layouts.length) {
+    try { const data = JSON.parse(await layouts[0].text()); if (data && data.format === LAYOUT_FORMAT) { data.name = data.name || baseName(layouts[0].name);
+      await storeLayout(layId(), { ...data, savedAt: data.savedAt || new Date().toISOString() }); await loadWithBackup(data, data.name); setTab("lay"); return; } } catch (_) {}
+    say(`${layouts[0].name} is not a Room 6 layout file`); return;
+  }
   const sheets = files.filter(f => /\.(xlsx|xls|xlsm|ods|csv|tsv|txt)$/i.test(f.name));
   for (const s of sheets) await importSheet(s);
   const images = files.filter(f => !sheets.includes(f));
@@ -1090,7 +1189,7 @@ const orbit = { target: toV(W / 2, L / 2, 0.8), r: 21, theta: Math.PI * 0.2, phi
 const plan = { cx: W / 2, cy: L / 2, h: 9.2 };
 const WALK_STARTS = { stair: { x: 8.85, y: L - 0.9, yaw: Math.PI }, room5: { x: 9.0, y: 0.9, yaw: 0 }, sw: { x: 1.3, y: 1.1, yaw: -0.61 } };
 const walk = { x: 8.85, y: L - 0.9, yaw: Math.PI, pitch: -0.05 };
-let mode = "orbit", cam = persp, selPart = null, selArt = null, locked = false;
+let mode = "orbit", cam = persp, selPart = null, selArt = null, selVit = null, locked = false;
 
 function applyOrbit() {
   const { target: t, r, theta, phi } = orbit;
@@ -1165,6 +1264,7 @@ function pick(x, y) {
   const hit = probe(x, y);   // nearest thing, so pillars and walls in front block the pick
   if (!hit) return null;
   if (hit.d.art) return { kind: "art", a: hit.d.art };
+  if (hit.d.vit) return mode !== "walk" ? { kind: "vit", v: hit.d.vit } : null;
   const p = hit.d.part;
   return p && (p.mobile || opts.dry) && mode !== "walk" ? { kind: "part", p } : null;
 }
@@ -1240,7 +1340,7 @@ function probe(x, y) {
     const o = h.object;
     if (o === handle || o.isSprite || o.isLine || !visibleDeep(o)) continue;
     const d = o.userData;
-    if (d.art || d.part || d.info) return { d, P: { x: h.point.x, y: -h.point.z, z: h.point.y } };
+    if (d.art || d.part || d.vit || d.info) return { d, P: { x: h.point.x, y: -h.point.z, z: h.point.y } };
   }
   return null;
 }
@@ -1273,6 +1373,13 @@ function describe({ d, P }) {
     }
     for (const [lvl, t] of a.issues || []) rows.push([lvl === "err" ? "⚠ Problem" : "Check", esc(t)]);
     return { kind: "Artwork", title: esc(a.title), big: `${fmt(a.w)} × ${fmt(a.h)} cm`, rows, note: "Drag it to move it · the blue corner dot resizes it" };
+  }
+  if (d.vit) {
+    const v = d.vit, rows = [["Height", cmT(v.h)], ["Glass case", `${fmt(Math.max(0.1, v.h - 0.2))} – ${cmT(v.h - 0.02)} high`],
+      ["Centre", `X ${cm(v.cx)} · Y ${cm(v.cy)} cm`], ["Angle", `${deg(v.ang)}°`]];
+    for (const [lvl, t] of v.issues || []) rows.push([lvl === "err" ? "⚠ Problem" : "Check", esc(t)]);
+    return { kind: "Display case", title: `Display case ${v.id}`, big: `${fmt(v.w)} × ${fmt(v.d)} cm`, rows,
+             note: "Drag it to move it · R rotates it · change its size in the Walls tab" };
   }
   if (d.part) {
     const p = d.part;
@@ -1394,6 +1501,13 @@ canvas.addEventListener("pointerdown", e => {
     canvas.style.cursor = "grabbing";
     return;
   }
+  if (h && h.kind === "vit") {
+    const v = h.v; selectVit(v);
+    const g = groundAt(e.clientX, e.clientY);
+    gesture = { type: "vdrag", v, ox: v.cx - (g ? g.x : v.cx), oy: v.cy - (g ? g.y : v.cy), ...base };
+    canvas.style.cursor = "grabbing";
+    return;
+  }
   if (h && h.kind === "part") {
     const p = h.p; selectPart(p);
     const g = groundAt(e.clientX, e.clientY);
@@ -1438,6 +1552,13 @@ canvas.addEventListener("pointermove", e => {
     p.cy = Math.min(L, Math.max(0, snapV(g.y + gesture.oy, 0.05)));
     placePart(p); evaluate(); evaluateArts(); refreshRows();
     showReadout(e.clientX, e.clientY, `${p.id}  X ${cm(p.cx)}  Y ${cm(p.cy)} cm`);
+  } else if (gesture.type === "vdrag") {
+    const g = groundAt(e.clientX, e.clientY); if (!g) return;
+    const v = gesture.v;
+    v.cx = Math.min(W, Math.max(0, snapV(g.x + gesture.ox, 0.05)));
+    v.cy = Math.min(L, Math.max(0, snapV(g.y + gesture.oy, 0.05)));
+    placeVit(v); evaluate(); refreshRows(); refreshVitRows();
+    showReadout(e.clientX, e.clientY, `${v.id}  X ${cm(v.cx)}  Y ${cm(v.cy)} cm`);
   } else if (gesture.type === "art") {
     const a = gesture.a, hit = wallHit(e.clientX, e.clientY);
     if (!hit) return;
@@ -1468,12 +1589,13 @@ function endPointer(e) {
   if (!gesture) return;
   if (gesture.type === "pinch") { if (pointers.size === 0) gesture = null; return; }
   if (gesture.type === "drag" && gesture.moved) { save(); saveArts(); }
+  if (gesture.type === "vdrag" && gesture.moved) save();
   if ((gesture.type === "art" || gesture.type === "resize") && gesture.moved) { saveArts(); refreshArtList(); }
-  if ((gesture.type === "orbit" || gesture.type === "pan") && !gesture.moved) { selectPart(null); selectArt(null); }
+  if ((gesture.type === "orbit" || gesture.type === "pan") && !gesture.moved) { selectPart(null); selectArt(null); selectVit(null); }
   const g = gesture;
   gesture = null; readout.hidden = true; canvas.style.cursor = "";
   if (g.type === "look" && locked) { const r = canvas.getBoundingClientRect(); if (!g.moved) showInfo(r.left + r.width / 2, r.top + r.height / 2); }
-  else if (!g.moved || g.type === "art" || g.type === "drag" || g.type === "resize") showInfo(e.clientX, e.clientY);
+  else if (!g.moved || g.type === "art" || g.type === "drag" || g.type === "vdrag" || g.type === "resize") showInfo(e.clientX, e.clientY);
 }
 canvas.addEventListener("pointerup", endPointer);
 canvas.addEventListener("pointercancel", endPointer);
@@ -1526,6 +1648,13 @@ addEventListener("keydown", e => {
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", "shift"].includes(k)) { keys.add(k); if (k.startsWith("arrow")) e.preventDefault(); }
     return;
   }
+  if (selVit) {
+    const st = e.shiftKey ? 0.5 : 0.05, mv = { arrowleft: [-st, 0], arrowright: [st, 0], arrowup: [0, st], arrowdown: [0, -st] }[k];
+    if (mv) { e.preventDefault(); selVit.cx += mv[0]; selVit.cy += mv[1]; commitVit(selVit); }
+    else if (k === "r") rotateVit(selVit, e.shiftKey ? -15 : 15);
+    else if (k === "escape") selectVit(null);
+    return;
+  }
   if (!selPart) return;
   const step = e.shiftKey ? 0.5 : 0.05;
   const moves = { arrowleft: [-step, 0], arrowright: [step, 0], arrowup: [0, step], arrowdown: [0, -step] };
@@ -1576,7 +1705,7 @@ function stepWalk(dt) {
   const speed = (keys.has("shift") ? 3.2 : 1.4) * dt / Math.hypot(f, s);
   const fx = -Math.sin(walk.yaw), fy = Math.cos(walk.yaw), rx = Math.cos(walk.yaw), ry = Math.sin(walk.yaw);
   walk.x += (fx * f + rx * s) * speed; walk.y += (fy * f + ry * s) * speed;
-  const R = 0.25, solids = [...OBSTACLES.filter(o => o.level === "err"), ...parts.map(p => obbOf(p))];
+  const R = 0.25, solids = [...OBSTACLES.filter(o => o.level === "err"), ...parts.map(p => obbOf(p)), ...vits.map(vitObb)];
   for (let i = 0; i < 3; i++) for (const b of solids) pushOut(walk, b, R);
   walk.x = Math.min(W - R, Math.max(R, walk.x)); walk.y = Math.min(L - R, Math.max(R, walk.y));
 }
@@ -1593,13 +1722,13 @@ const artPosText = a => a.wall ? `${surfName(a.wall)} · left edge ${fmt(a.u)} c
 
 function setTab(t) {
   ui.tab = t; saveUi();
-  document.getElementById("t-art").setAttribute("aria-selected", String(t === "art"));
-  document.getElementById("t-walls").setAttribute("aria-selected", String(t === "walls"));
-  document.getElementById("p-art").hidden = t !== "art";
-  document.getElementById("p-walls").hidden = t !== "walls";
+  for (const k of ["art", "walls", "lay"]) {
+    document.getElementById("t-" + k).setAttribute("aria-selected", String(t === k));
+    document.getElementById("p-" + k).hidden = t !== k;
+  }
+  if (t === "lay") renderLayouts();
 }
-document.getElementById("t-art").addEventListener("click", () => setTab("art"));
-document.getElementById("t-walls").addEventListener("click", () => setTab("walls"));
+for (const k of ["art", "walls", "lay"]) document.getElementById("t-" + k).addEventListener("click", () => setTab(k));
 
 // walls tab
 const wallsEl = document.getElementById("walls");
@@ -1654,6 +1783,7 @@ function refreshRows() {
 }
 function selectPart(p) {
   selPart = p;
+  if (p) { selVit = null; for (const v of vits) if (v.obj) v.obj.edges.visible = false; refreshVitRows(); }
   if (p) { selArt = null; handle.visible = false; for (const a of arts) if (a.obj) a.obj.edges.visible = false; refreshArtList(); }
   for (const q of parts) q.obj.edges.visible = q === p;
   refreshRows();
@@ -1662,7 +1792,8 @@ function selectPart(p) {
 function selectArt(a) {
   const changed = selArt !== a;
   selArt = a;
-  if (a) { selPart = null; for (const q of parts) q.obj.edges.visible = false; refreshRows(); setTab("art"); }
+  if (a) { selPart = null; selVit = null; for (const v of vits) if (v.obj) v.obj.edges.visible = false; refreshVitRows();
+           for (const q of parts) q.obj.edges.visible = false; refreshRows(); setTab("art"); }
   for (const x of arts) if (x.obj) x.obj.edges.visible = x === a;
   placeHandle();
   if (changed) refreshArtList();
@@ -1729,6 +1860,7 @@ function artEditor(a) {
     </div>
     ${a.hasImg ? "" : `<div class="fields two">
       <label>Look (no picture yet)<select id="e-style-${id}">${ART_STYLES.map(([k, t]) => `<option value="${k}"${(a.style || "work") === k ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+      ${(a.style === "text") ? `<label>Text on the wall<input type="text" id="e-text-${id}" value="${esc(a.text || a.title)}"></label>` : ""}
       ${(a.style === "panel") ? `<label>Colour<span class="hexrow"><input type="color" id="e-colorpick-${id}" value="${esc(a.color || "#E5C5C8")}"><input type="text" id="e-color-${id}" value="${esc((a.color || "#E5C5C8").toUpperCase())}" maxlength="7"></span></label>` : ""}
     </div>`}
     <label class="lockrow"><input type="checkbox" id="e-lock-${id}"${a.lock ? " checked" : ""}> Keep proportions when resizing${a.hasImg ? " (picture is " + (a.aspect >= 1 ? "landscape" : "portrait") + ")" : ""}</label>
@@ -1784,6 +1916,7 @@ artList.addEventListener("change", e => {
   const f = m[1], v = e.target.value;
   if (f === "title") { a.title = v.trim() || "Untitled"; if (!a.hasImg) setArtTexture(a); commitArt(a, true); return; }
   if (f === "artist" || f === "inv" || f === "note") { a[f] = v.trim(); commitArt(a); return; }
+  if (f === "text") { a.text = v; setArtTexture(a); commitArt(a, true); return; }
   if (f === "style") { a.style = v; if (v === "panel" && !a.color) a.color = "#E5C5C8"; setArtTexture(a); commitArt(a, true); return; }
   if (f === "color" || f === "colorpick") { const h = normHex(v); if (!h) { say("Use a colour like #E5C5C8"); return; } a.color = h; setArtTexture(a); commitArt(a, true); return; }
   if (f === "lock") { a.lock = e.target.checked; if (a.lock && a.hasImg) { a.h = a.w / a.aspect; } commitArt(a); return; }
@@ -1995,6 +2128,219 @@ sheetToggle.addEventListener("click", () => {
 for (const id of ["orbit", "plan", "walk"]) document.getElementById("v-" + id).addEventListener("click", () => setMode(id));
 document.getElementById("walkFrom").addEventListener("change", e => { startWalk(e.target.value); canvas.focus(); });
 
+// display cases (Walls tab)
+const vitListEl = document.getElementById("vitList");
+function commitVit(v, rebuild = false) {
+  v.cx = Math.min(W, Math.max(0, v.cx)); v.cy = Math.min(L, Math.max(0, v.cy));
+  if (rebuild) buildVit(v); else placeVit(v);
+  evaluate(); refreshRows(); refreshVitRows(); save();
+}
+function rotateVit(v, dg) {
+  let a = normAng(v.ang + dg * Math.PI / 180);
+  if (opts.snap) a = normAng(Math.round(a / (Math.PI / 12)) * (Math.PI / 12));
+  v.ang = a; commitVit(v);
+}
+function selectVit(v) {
+  selVit = v;
+  if (v) {
+    selPart = null; selArt = null; handle.visible = false;
+    for (const q of parts) q.obj.edges.visible = false;
+    for (const a of arts) if (a.obj) a.obj.edges.visible = false;
+    refreshRows(); refreshArtList();
+    if (!gesture) setTab("walls");
+  }
+  for (const x of vits) if (x.obj) x.obj.edges.visible = x === v;
+  refreshVitRows();
+  if (v && !gesture) { const el = vitListEl.querySelector(`[data-vit="${v.id}"]`); el && el.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+}
+function renderVitRows() {
+  vitListEl.innerHTML = vits.map(v => `
+    <div class="wall" data-vit="${v.id}">
+      <button class="wall-head" type="button" data-act="sel"><span class="swatch" style="background:#f4f4f2"></span>
+        <span class="wall-name">Display case ${v.id}<small></small></span><span class="chip"></span></button>
+      <ul class="issues"></ul>
+      <div class="fields">
+        <label>X cm<input type="number" step="5" data-f="cx"></label>
+        <label>Y cm<input type="number" step="5" data-f="cy"></label>
+        <label>Angle °<input type="number" step="15" data-f="ang"></label>
+        <label>Width cm<input type="number" step="5" min="20" data-f="w"></label>
+        <label>Depth cm<input type="number" step="5" min="20" data-f="d"></label>
+        <label>Height cm<input type="number" step="5" min="30" data-f="h"></label>
+      </div>
+      <div class="rot">
+        <button type="button" data-act="r-15">↻ 15°</button><button type="button" data-act="r15">↺ 15°</button><button type="button" data-act="r90">90°</button>
+        <button type="button" data-act="del" class="danger">Delete</button>
+      </div>
+    </div>`).join("") || `<div class="empty">No display cases.</div>`;
+  refreshVitRows();
+}
+function refreshVitRows() {
+  for (const v of vits) {
+    const el = vitListEl.querySelector(`[data-vit="${v.id}"]`); if (!el) continue;
+    el.dataset.selected = String(selVit === v);
+    el.querySelector("small").textContent = `${cm(v.w)} × ${cm(v.d)} × ${cm(v.h)} cm`;
+    const chip = el.querySelector(".chip"); chip.className = "chip " + (v.level || "ok");
+    chip.textContent = v.level === "err" ? "clash" : v.level === "warn" ? "check" : "ok";
+    el.querySelector(".issues").innerHTML = (v.issues || []).map(([l, t]) => `<li class="${l}">${esc(t)}</li>`).join("");
+    for (const i of el.querySelectorAll("input")) if (document.activeElement !== i)
+      i.value = i.dataset.f === "ang" ? deg(v.ang) : cm(v[i.dataset.f]);
+  }
+}
+vitListEl.addEventListener("click", e => {
+  const row = e.target.closest("[data-vit]"); if (!row) return;
+  const v = vits.find(x => x.id === row.dataset.vit), act = e.target.closest("[data-act]")?.dataset.act; if (!v || !act) return;
+  if (act === "sel") { selectVit(selVit === v ? null : v); if (selVit === v && mode !== "walk") { orbit.target.copy(toV(v.cx, v.cy, 0.5)); plan.cx = v.cx; plan.cy = v.cy; } }
+  else if (act.startsWith("r")) { selectVit(v); rotateVit(v, +act.slice(1)); }
+  else if (act === "del") {
+    const b = e.target.closest("[data-act]");
+    if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Sure?"; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "Delete"; } }, 3000); return; }
+    removeVit(v); vits.splice(vits.indexOf(v), 1); if (selVit === v) selVit = null;
+    evaluate(); refreshRows(); renderVitRows(); save(); say(`Display case ${v.id} removed`);
+  }
+});
+vitListEl.addEventListener("change", e => {
+  const row = e.target.closest("[data-vit]"), f = e.target.dataset.f; if (!row || !f) return;
+  const v = vits.find(x => x.id === row.dataset.vit), n = num(e.target.value); if (!v || !isFinite(n)) return;
+  if (f === "ang") { v.ang = normAng(n * Math.PI / 180); commitVit(v); }
+  else if (f === "cx" || f === "cy") { v[f] = n / 100; commitVit(v); }
+  else { v[f] = Math.max(f === "h" ? 0.3 : 0.2, n / 100); commitVit(v, true); }
+});
+vitListEl.addEventListener("focusin", e => { const row = e.target.closest("[data-vit]"); if (row && e.target.tagName === "INPUT") { const v = vits.find(x => x.id === row.dataset.vit); if (v && selVit !== v) selectVit(v); } });
+document.getElementById("addVit").addEventListener("click", () => {
+  let i = 1; while (vits.some(v => v.id === "V" + i)) i++;
+  const v = { id: "V" + i, cx: W / 2 + 2.2, cy: L / 2, ang: Math.PI / 2, w: 1.2, d: 0.6, h: 0.9 };
+  vits.push(v); buildVit(v); evaluate(); renderVitRows(); save(); selectVit(v);
+  say(`Display case ${v.id} added in the middle of the room – drag it where you want it`);
+});
+document.getElementById("resetVits").addEventListener("click", () => {
+  for (const v of vits) removeVit(v);
+  vits = DEFAULT_VITS(); vits.forEach(buildVit); selVit = null;
+  evaluate(); refreshRows(); renderVitRows(); save(); say("Display cases are back where the drawings put them");
+});
+renderVitRows();
+
+// layouts: options from the drawings + saved / shared layouts -----------------
+const WALL_PRESETS = [
+  ["plan", "Original plan", null],
+  ["p5", "Turned east (1001 p5)", { cx: 7.97, cy: 11.2, ang: 0 }],
+  ["p6", "Turned west (1001 p6)", { cx: 4.35, cy: 11.2, ang: 0 }],
+];
+function currentWallPreset() {
+  const m = parts.find(p => p.id === "MOB4");
+  for (const [k, , pos] of WALL_PRESETS) {
+    const t = pos || DEFAULTS.MOB4;
+    if (Math.hypot(m.cx - t.cx, m.cy - t.cy) < 0.02 && Math.abs(normAng(m.ang) - normAng(t.ang)) < 0.01) return k;
+  }
+  return null;
+}
+function renderPresets() {
+  const cur = currentWallPreset(), wEl = document.getElementById("presetWalls"), sEl = document.getElementById("presetWest");
+  wEl.innerHTML = WALL_PRESETS.map(([k, name]) => `<button type="button" data-k="${k}" aria-pressed="${cur === k}">${name}</button>`).join("");
+  const ws = WEST_SETS[opts.westSet] ? opts.westSet : "1002p1";
+  sEl.innerHTML = Object.entries(WEST_SETS).map(([k, v]) => `<button type="button" data-k="${k}" aria-pressed="${ws === k}">${v.name}</button>`).join("");
+}
+document.getElementById("presetWalls").addEventListener("click", e => {
+  const k = e.target.closest("[data-k]")?.dataset.k; if (!k) return;
+  const pos = WALL_PRESETS.find(x => x[0] === k)[2];
+  for (const p of parts) { Object.assign(p, DEFAULTS[p.id]); if (pos && p.id === "MOB4") Object.assign(p, pos); placePart(p); }
+  evaluate(); evaluateArts(); refreshRows(); refreshArtList(); save(); saveArts(); renderPresets();
+  say(k === "plan" ? "Walls back to the original plan" : "4 m wall moved as in the drawing – distance from the north wall is my estimate");
+});
+document.getElementById("presetWest").addEventListener("click", e => { const k = e.target.closest("[data-k]")?.dataset.k; if (k) applyWestSet(k); });
+
+const LAYOUT_FORMAT = "vasarely-room6-layout";
+const blobToDataURL = b => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.onerror = () => r(null); fr.readAsDataURL(b); });
+async function snapshot(name) {
+  const artworks = [];
+  for (const a of arts) {
+    const blob = a.hasImg ? await idb.get(a.id) : null;
+    artworks.push({ title: a.title, artist: a.artist, inv: a.inv, w: a.w, h: a.h, d: a.d, note: a.note, image: a.image, aspect: a.aspect,
+      lock: a.lock, wall: a.wall, u: a.u, zc: a.zc, sizeGuessed: a.sizeGuessed, style: a.style, color: a.color, text: a.text,
+      fromDrawing: a.fromDrawing, picture: blob ? await blobToDataURL(blob) : null });
+  }
+  return { format: LAYOUT_FORMAT, version: 1, name, savedAt: new Date().toISOString(),
+    walls: Object.fromEntries(parts.map(p => [p.id, { cx: p.cx, cy: p.cy, ang: p.ang }])),
+    vitrines: vits.map(({ id, cx, cy, ang, w, d, h }) => ({ id, cx, cy, ang, w, d, h })),
+    covered: { ...opts.covered }, colors: { ...opts.colors }, westSet: opts.westSet || "1002p1", artworks };
+}
+async function applyLayout(lay) {
+  if (!lay || lay.format !== LAYOUT_FORMAT) throw new Error("this is not a Room 6 layout file");
+  for (const p of parts) { Object.assign(p, DEFAULTS[p.id], (lay.walls || {})[p.id] || {}); placePart(p); }
+  for (const v of vits) removeVit(v);
+  vits = Array.isArray(lay.vitrines) ? lay.vitrines.map(v => ({ ...v })) : DEFAULT_VITS(); vits.forEach(buildVit);
+  opts.covered = { ...(lay.covered || DEFAULT_COVERED) }; opts.colors = { ...(lay.colors || {}) }; opts.westSet = lay.westSet || "1002p1";
+  for (const a of [...arts]) { removeArtObj(a); if (a.url) URL.revokeObjectURL(a.url); }
+  arts = []; selArt = null; selVit = null; selPart = null; handle.visible = false;
+  await idb.clear();
+  for (const x of lay.artworks || []) {
+    const { picture, ...f } = x;
+    const a = newArt({ ...f, hasImg: false });
+    if (picture) { try { await attachBlob(a, await (await fetch(picture)).blob()); } catch (_) {} }
+    placeArt(a);
+  }
+  buildWalls(); applyColors(); evaluate(); evaluateArts();
+  save(); saveArts(); renderWindowList(); renderColorList(); renderVitRows(); refreshRows(); refreshArtList(); renderPresets();
+}
+const layId = () => "L" + Date.now().toString(36);
+async function storeLayout(id, data) { await idb.lput(id, { id, name: data.name, savedAt: data.savedAt, count: data.artworks.length, data }); }
+async function renderLayouts() {
+  renderPresets();
+  const el = document.getElementById("layList");
+  const list = (await idb.lall()).sort((a, b) => (b.savedAt || "").localeCompare(a.savedAt || ""));
+  if (!list.length) { el.innerHTML = `<div class="empty">No saved layouts yet. Give this one a name and save it.</div>`; return; }
+  el.innerHTML = list.map(l => `<div class="layrow" data-lay="${esc(l.id)}">
+      <span class="wall-name">${esc(l.name)}<small>${new Date(l.savedAt).toLocaleString()} · ${l.count} artwork${l.count === 1 ? "" : "s"}</small></span>
+      <button class="btn primary" type="button" data-act="load">Load</button>
+      <button class="btn" type="button" data-act="file">Download</button>
+      <button class="btn danger" type="button" data-act="del">Delete</button></div>`).join("");
+}
+function downloadJSON(data) {
+  const blob = new Blob([JSON.stringify(data)], { type: "application/json" }), a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `room6-layout-${(data.name || "layout").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase() || "layout"}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+async function loadWithBackup(data, label) {
+  try {
+    await storeLayout("autosave", { ...(await snapshot("Before loading “" + label + "”")), savedAt: new Date().toISOString() });
+    await applyLayout(data);
+    say(`Layout “${label}” loaded – your previous room is saved as “Before loading…”`);
+  } catch (e) { say(`Couldn't load the layout: ${e.message}`); }
+  renderLayouts();
+}
+document.getElementById("laySave").addEventListener("click", async () => {
+  const inp = document.getElementById("layName"), name = inp.value.trim() || `Layout ${new Date().toLocaleDateString()}`;
+  try { await storeLayout(layId(), await snapshot(name)); inp.value = ""; say(`Saved “${name}”`); }
+  catch (e) { say("Couldn't save – this browser may be out of storage space"); }
+  renderLayouts();
+});
+document.getElementById("layList").addEventListener("click", async e => {
+  const row = e.target.closest("[data-lay]"), act = e.target.closest("[data-act]")?.dataset.act; if (!row || !act) return;
+  const rec = await idb.lget(row.dataset.lay); if (!rec) return;
+  if (act === "load") loadWithBackup(rec.data, rec.name);
+  else if (act === "file") downloadJSON(rec.data);
+  else if (act === "del") {
+    const b = e.target.closest("[data-act]");
+    if (!b.dataset.armed) { b.dataset.armed = "1"; b.textContent = "Sure?"; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "Delete"; } }, 3000); return; }
+    await idb.ldel(rec.id); say(`Deleted “${rec.name}”`); renderLayouts();
+  }
+});
+document.getElementById("layExport").addEventListener("click", async () => {
+  const name = document.getElementById("layName").value.trim() || "My room 6 layout";
+  downloadJSON(await snapshot(name));
+});
+document.getElementById("layImport").addEventListener("click", () => document.getElementById("layInput").click());
+document.getElementById("layInput").addEventListener("change", async e => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  let data;
+  try { data = JSON.parse(await f.text()); } catch (_) { say(`${f.name} is not a layout file`); return; }
+  if (!data || data.format !== LAYOUT_FORMAT) { say(`${f.name} is not a Room 6 layout file`); return; }
+  data.name = data.name || baseName(f.name);
+  try { await storeLayout(layId(), { ...data, savedAt: data.savedAt || new Date().toISOString() }); } catch (_) {}
+  loadWithBackup(data, data.name);
+});
+
 // windows + colours (Walls tab)
 const normHex = v => { let h = String(v || "").trim().replace(/^#/, ""); if (/^[0-9a-f]{3}$/i.test(h)) h = h.split("").map(c => c + c).join(""); return /^[0-9a-f]{6}$/i.test(h) ? "#" + h.toUpperCase() : null; };
 function renderWindowList() {
@@ -2054,7 +2400,7 @@ function resize() {
 new ResizeObserver(resize).observe(canvas);
 resize();
 
-setTab(ui.tab === "walls" ? "walls" : "art");
+setTab(["walls", "lay"].includes(ui.tab) ? ui.tab : "art");
 refreshAll(); setHint();
 loadArts().then(syncTheme);
 syncTheme();
