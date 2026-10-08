@@ -62,6 +62,12 @@ button{cursor:pointer}
 .tabs button{border:0;background:none;padding:6px 12px;border-radius:6px;font-weight:600;font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
 .tabs button[aria-selected="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 .tabs .count{font:11px var(--mono);color:var(--muted)}
+.hide-ui{border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:3px 10px;font-size:12px;white-space:nowrap}
+.corner{position:absolute;top:12px;right:16px;display:flex;gap:6px;z-index:4}
+.corner button{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:7px 12px;font-weight:600;box-shadow:var(--shadow);color:var(--ink)}
+.corner button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+#app[data-ui="min"] .panel,#app[data-ui="min"] .hint,#app[data-ui="min"] .brand{display:none}
+#app[data-ui="min"] .top{right:16px}
 .sheet-toggle{display:none;border:1px solid var(--line);background:var(--panel-2);border-radius:6px;padding:3px 10px;font-size:12px}
 .panel-body{overflow:auto;padding:12px 14px 16px;display:flex;flex-direction:column;gap:14px;flex:1;min-height:0}
 .tabpane{display:flex;flex-direction:column;gap:14px}
@@ -211,7 +217,8 @@ button{cursor:pointer}
         <button role="tab" id="t-walls" aria-selected="false" aria-controls="p-walls">Walls</button>
         <button role="tab" id="t-lay" aria-selected="false" aria-controls="p-lay">Layouts</button>
       </div>
-      <button class="sheet-toggle" id="sheetToggle" aria-expanded="false">Show</button>
+      <span style="display:flex;gap:6px"><button class="hide-ui" id="hideUi" title="Hide the menu (M)">Hide menu</button>
+      <button class="sheet-toggle" id="sheetToggle" aria-expanded="false">Show</button></span>
     </div>
     <div class="panel-body">
       <section class="tabpane" id="p-art" role="tabpanel" aria-labelledby="t-art">
@@ -301,6 +308,10 @@ button{cursor:pointer}
   </aside>
 
   <div class="hint" id="hint"></div>
+  <div class="corner" id="corner" hidden>
+    <button type="button" id="fsBtn">Full screen</button>
+    <button type="button" class="primary" id="menuBtn" title="Show the menu (M)">☰ Menu</button>
+  </div>
   <div class="readout" id="readout" hidden></div>
   <div class="info" id="info" role="dialog" aria-label="Measurements" hidden></div>
   <div class="toast" id="toast" role="status" hidden></div>
@@ -1299,7 +1310,10 @@ function applyWalk() {
 function setMode(m) {
   if (m === mode && m !== "walk") return;
   if (mode === "walk" && m !== "walk" && document.pointerLockElement) document.exitPointerLock?.();
+  const wasWalk = mode === "walk";
   mode = m; hideInfo();
+  if (m === "walk" && !wasWalk) { autoMin = app.dataset.ui !== "min"; if (autoMin) { setUi(true); say("Menu hidden for walking – press M or ☰ Menu to bring it back"); } }
+  else if (m !== "walk" && wasWalk && autoMin) { autoMin = false; setUi(false); }
   for (const id of ["orbit", "plan", "walk"]) document.getElementById("v-" + id).setAttribute("aria-pressed", String(id === m));
   cam = m === "plan" ? ortho : persp;
   persp.fov = m === "walk" ? 70 : 55; persp.updateProjectionMatrix();
@@ -1742,6 +1756,7 @@ addEventListener("keydown", e => {
   if (typing(e) || e.metaKey || e.ctrlKey) return;
   const k = e.key.toLowerCase();
   if (k === "escape" && !infoEl.hidden) { hideInfo(); return; }
+  if (k === "m" && !e.shiftKey && !e.altKey) { autoMin = false; setUi(app.dataset.ui !== "min"); return; }
   if (selArt && (mode !== "walk" || !locked)) {
     const a = selArt, st = e.shiftKey ? 0.1 : 0.01;
     const mv = { arrowleft: [-st, 0], arrowright: [st, 0], arrowup: [0, st], arrowdown: [0, -st] }[k];
@@ -2240,6 +2255,25 @@ optVisitor.checked = opts.visitor.show;
 optVisitor.addEventListener("change", () => { opts.visitor.show = optVisitor.checked; if (!optVisitor.checked) selectVisitor(false); placeVisitor(); save(); });
 
 const panel = document.getElementById("panel"), sheetToggle = document.getElementById("sheetToggle");
+// hide the menu for an uncluttered view (automatic in Walk mode)
+let autoMin = false;
+const corner = document.getElementById("corner"), fsBtn = document.getElementById("fsBtn");
+function setUi(min) {
+  app.dataset.ui = min ? "min" : "full";
+  corner.hidden = !min;
+  readout.hidden = true;
+  if (min) hideInfo();
+}
+document.getElementById("hideUi").addEventListener("click", () => { autoMin = false; setUi(true); canvas.focus(); });
+document.getElementById("menuBtn").addEventListener("click", () => { autoMin = false; setUi(false); });
+fsBtn.hidden = !(document.fullscreenEnabled && app.requestFullscreen);
+fsBtn.addEventListener("click", () => {
+  try {
+    const r = document.fullscreenElement ? document.exitFullscreen() : app.requestFullscreen();
+    r && r.catch && r.catch(() => say("This browser doesn't allow full screen here"));
+  } catch (_) { say("This browser doesn't allow full screen here"); }
+});
+document.addEventListener("fullscreenchange", () => { fsBtn.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen"; });
 sheetToggle.addEventListener("click", () => {
   const open = panel.dataset.collapsed === "true";
   panel.dataset.collapsed = String(!open); app.dataset.sheet = open ? "open" : "closed";
