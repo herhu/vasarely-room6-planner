@@ -251,7 +251,7 @@ button{cursor:pointer}
         <div class="opts first">
           <h3 class="sub">Options from the drawings</h3>
           <p class="legend">Switch between the options in the elevation PDFs. This only moves walls and the frames placed from the drawings; your own pictures stay where they are.</p>
-          <span class="field">4 m mobile wall (MOB4)</span>
+          <span class="field">Free-standing walls (CV_kiall_nezo_1001)</span>
           <div class="filter" id="presetWalls"></div>
           <span class="field">West wall frames</span>
           <div class="filter" id="presetWest"></div>
@@ -2220,17 +2220,22 @@ document.getElementById("resetVits").addEventListener("click", () => {
 renderVitRows();
 
 // layouts: options from the drawings + saved / shared layouts -----------------
+// Wall positions read from the elevations. Side views (1001 p7–p11) give where a wall runs along the room
+// and how long it is, not how far it stands from the pillars, so the X positions are estimates.
+const NS = Math.PI / 2;
 const WALL_PRESETS = [
-  ["plan", "Original plan", null],
-  ["p5", "Turned east (1001 p5)", { cx: 7.97, cy: 11.2, ang: 0 }],
-  ["p6", "Turned west (1001 p6)", { cx: 4.35, cy: 11.2, ang: 0 }],
+  ["plan", "Original plan", {}],
+  ["p5", "p5 · 4 m wall turned east", { MOB4: { cx: 7.97, cy: 11.2, ang: 0 } }],
+  ["p6", "p6 · 4 m wall turned west", { MOB4: { cx: 4.35, cy: 11.2, ang: 0 } }],
+  ["p7", "p7 · MOB2N turned south", { MOB2N: { cx: 5.45, cy: 9.63, ang: NS } }],
+  ["p8", "p8 · both 2 m walls turned", { MOB2N: { cx: 5.45, cy: 11.35, ang: NS }, MOB2S: { cx: 5.45, cy: 4.43, ang: NS } }],
+  ["p9", "p9 · MOB2S turned north", { MOB2N: { cx: 5.45, cy: 11.35, ang: NS }, MOB2S: { cx: 5.45, cy: 6.14, ang: NS } }],
+  ["p10", "p10 · GK2E turned south", { GK2E: { cx: 6.9, cy: 4.47, ang: NS } }],
+  ["p11", "p11 · GK2E turned north", { GK2E: { cx: 6.9, cy: 6.18, ang: NS } }],
 ];
 function currentWallPreset() {
-  const m = parts.find(p => p.id === "MOB4");
-  for (const [k, , pos] of WALL_PRESETS) {
-    const t = pos || DEFAULTS.MOB4;
-    if (Math.hypot(m.cx - t.cx, m.cy - t.cy) < 0.02 && Math.abs(normAng(m.ang) - normAng(t.ang)) < 0.01) return k;
-  }
+  const same = (p, t) => Math.hypot(p.cx - t.cx, p.cy - t.cy) < 0.02 && Math.abs(Math.sin(p.ang - t.ang)) < 0.01;
+  for (const [k, , pos] of WALL_PRESETS) if (parts.every(p => same(p, pos[p.id] || DEFAULTS[p.id]))) return k;
   return null;
 }
 function renderPresets() {
@@ -2242,9 +2247,10 @@ function renderPresets() {
 document.getElementById("presetWalls").addEventListener("click", e => {
   const k = e.target.closest("[data-k]")?.dataset.k; if (!k) return;
   const pos = WALL_PRESETS.find(x => x[0] === k)[2];
-  for (const p of parts) { Object.assign(p, DEFAULTS[p.id]); if (pos && p.id === "MOB4") Object.assign(p, pos); placePart(p); }
+  for (const p of parts) { Object.assign(p, DEFAULTS[p.id], pos[p.id] || {}); placePart(p); }
   evaluate(); evaluateArts(); refreshRows(); refreshArtList(); save(); saveArts(); renderPresets();
-  say(k === "plan" ? "Walls back to the original plan" : "4 m wall moved as in the drawing – distance from the north wall is my estimate");
+  const moved = Object.keys(pos);
+  say(k === "plan" ? "Walls back to the original plan" : `${moved.join(" and ")} placed as in page ${k.slice(1)} of 1001 – the distance from the pillars is my estimate`);
 });
 document.getElementById("presetWest").addEventListener("click", e => { const k = e.target.closest("[data-k]")?.dataset.k; if (k) applyWestSet(k); });
 
